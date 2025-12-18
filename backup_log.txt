@@ -1,0 +1,10 @@
+Backup Report - 2025-12-08
+
+1. Support VPS (216.238.70.204)
+   - Status: Success
+   - Contents: /etc/dokploy, /root/deployments, /var/lib/docker/volumes
+   - Location: .gemini/antigravity/brain/.../backups/support/
+
+2. Main VPS (64.177.81.23)
+   - Status: In Progress...
+   - Contents: /etc/dokploy, /root/deployments, /var/lib/docker/volumes

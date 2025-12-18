@@ -1,0 +1,45 @@
+﻿# Logs
+*.log
+npm-debug.log*
+
+# Dependencies
+node_modules/
+.next/
+
+# Environment
+.env
+.env.local
+
+# IDE
+.idea/
+.vscode/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Temp files
+*.tmp
+*.b64
+*.b64.txt
+backups/
+*.tar.gz
+
+# Sensitive files - DO NOT COMMIT
+secrets.md
+secrets.md.*
+setup_ai_keys.md
+setup_ai_keys.md.*
+id_vps_*
+n8n_bridge.js
+*.metadata.json
+*.resolved
+*.resolved.*
+
+# Documentation with secrets
+integration_guide.md
+system_architecture_report.md
+deployment_stacks.md
+
+remote_n8n_compose.yml
+docker-compose.lms.yml
