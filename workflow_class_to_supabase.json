@@ -1,0 +1,195 @@
+{
+    "name": "INEA Class Generator + Supabase Storage",
+    "nodes": [
+        {
+            "parameters": {
+                "httpMethod": "POST",
+                "path": "inea-class-to-supabase",
+                "responseMode": "responseNode",
+                "options": {}
+            },
+            "id": "webhook-main",
+            "name": "Webhook",
+            "type": "n8n-nodes-base.webhook",
+            "typeVersion": 2,
+            "position": [
+                200,
+                300
+            ],
+            "webhookId": "inea-supabase"
+        },
+        {
+            "parameters": {
+                "method": "POST",
+                "url": "https://api.sambanova.ai/v1/chat/completions",
+                "sendHeaders": true,
+                "headerParameters": {
+                    "parameters": [
+                        {
+                            "name": "Authorization",
+                            "value": "Bearer {{ $env.SAMBANOVA_API_KEY }}"
+                        }
+                    ]
+                },
+                "sendBody": true,
+                "specifyBody": "json",
+                "jsonBody": "={\n  \"model\": \"Meta-Llama-3.3-70B-Instruct\",\n  \"messages\": [\n    {\n      \"role\": \"system\",\n      \"content\": \"Eres un experto educador del programa INEA México (Instituto Nacional para la Educación de los Adultos). Tu tarea es crear lecciones claras, motivadoras y prácticas para adultos que están aprendiendo educación básica. Usa ejemplos de la vida cotidiana mexicana. El formato debe ser Markdown.\"\n    },\n    {\n      \"role\": \"user\",\n      \"content\": \"Crea una clase completa sobre: {{ $json.body.topic }}\\n\\nIncluye:\\n1. TÍTULO llamativo\\n2. OBJETIVOS (3-5 puntos)\\n3. INTRODUCCIÓN motivadora (2 párrafos)\\n4. CONTENIDO dividido en secciones claras\\n5. EJEMPLOS prácticos de la vida diaria\\n6. RESUMEN con puntos clave\\n7. QUIZ de 5 preguntas de opción múltiple (marca la respuesta correcta)\"\n    }\n  ],\n  \"temperature\": 0.7,\n  \"max_tokens\": 4000\n}",
+                "options": {
+                    "timeout": 120000
+                }
+            },
+            "id": "sambanova-gen",
+            "name": "Generate Class (SambaNova)",
+            "type": "n8n-nodes-base.httpRequest",
+            "typeVersion": 4.2,
+            "position": [
+                450,
+                300
+            ]
+        },
+        {
+            "parameters": {
+                "mode": "raw",
+                "jsonOutput": "={\n  \"tema\": \"{{ $('Webhook').item.json.body.topic }}\",\n  \"contenido\": {{ JSON.stringify($json.choices[0].message.content) }},\n  \"modelo\": \"Meta-Llama-3.3-70B-Instruct\",\n  \"tokens_usados\": {{ $json.usage ? $json.usage.total_tokens : 0 }}\n}",
+                "options": {}
+            },
+            "id": "format-class",
+            "name": "Format for Database",
+            "type": "n8n-nodes-base.set",
+            "typeVersion": 3.4,
+            "position": [
+                700,
+                300
+            ]
+        },
+        {
+            "parameters": {
+                "method": "POST",
+                "url": "http://64.177.81.23:8000/rest/v1/clases_generadas",
+                "sendHeaders": true,
+                "headerParameters": {
+                    "parameters": [
+                        {
+                            "name": "apikey",
+                            "value": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZS1kZW1vIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImV4cCI6MTk4MzgxMjk5Nn0.EGIM96RAZx35lJzdJsyH-qQwv8Hdp7fsn3W0YpN81IU"
+                        },
+                        {
+                            "name": "Authorization",
+                            "value": "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZS1kZW1vIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImV4cCI6MTk4MzgxMjk5Nn0.EGIM96RAZx35lJzdJsyH-qQwv8Hdp7fsn3W0YpN81IU"
+                        },
+                        {
+                            "name": "Content-Type",
+                            "value": "application/json"
+                        },
+                        {
+                            "name": "Prefer",
+                            "value": "return=representation"
+                        }
+                    ]
+                },
+                "sendBody": true,
+                "specifyBody": "json",
+                "jsonBody": "={{ $json }}",
+                "options": {}
+            },
+            "id": "supabase-insert",
+            "name": "Save to Supabase",
+            "type": "n8n-nodes-base.httpRequest",
+            "typeVersion": 4.2,
+            "position": [
+                950,
+                300
+            ]
+        },
+        {
+            "parameters": {
+                "mode": "raw",
+                "jsonOutput": "={\n  \"success\": true,\n  \"message\": \"Clase generada y guardada exitosamente\",\n  \"tema\": \"{{ $('Format for Database').item.json.tema }}\",\n  \"tokens_usados\": {{ $('Format for Database').item.json.tokens_usados }},\n  \"id_supabase\": {{ $json[0] ? $json[0].id : 0 }},\n  \"fecha\": \"{{ new Date().toISOString() }}\"\n}",
+                "options": {}
+            },
+            "id": "format-response",
+            "name": "Format Response",
+            "type": "n8n-nodes-base.set",
+            "typeVersion": 3.4,
+            "position": [
+                1200,
+                300
+            ]
+        },
+        {
+            "parameters": {
+                "respondWith": "json",
+                "responseBody": "={{ $json }}",
+                "options": {}
+            },
+            "id": "respond-final",
+            "name": "Send Response",
+            "type": "n8n-nodes-base.respondToWebhook",
+            "typeVersion": 1.1,
+            "position": [
+                1450,
+                300
+            ]
+        }
+    ],
+    "connections": {
+        "Webhook": {
+            "main": [
+                [
+                    {
+                        "node": "Generate Class (SambaNova)",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        },
+        "Generate Class (SambaNova)": {
+            "main": [
+                [
+                    {
+                        "node": "Format for Database",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        },
+        "Format for Database": {
+            "main": [
+                [
+                    {
+                        "node": "Save to Supabase",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        },
+        "Save to Supabase": {
+            "main": [
+                [
+                    {
+                        "node": "Format Response",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        },
+        "Format Response": {
+            "main": [
+                [
+                    {
+                        "node": "Send Response",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        }
+    },
+    "settings": {
+        "executionOrder": "v1"
+    }
+}
