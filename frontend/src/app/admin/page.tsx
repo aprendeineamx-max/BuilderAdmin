@@ -26,6 +26,80 @@ interface SupabaseStats {
     lastUpdated: string;
 }
 
+function BatchButton({ title, topics, onLog, onStatsUpdate }: {
+    title: string,
+    topics: string[],
+    onLog: (msg: string) => void,
+    onStatsUpdate: () => void
+}) {
+    const [loading, setLoading] = useState(false);
+    const [progress, setProgress] = useState(0);
+
+    const runBatch = async () => {
+        if (!confirm(`¿Iniciar la generación de ${topics.length} clases? Esto tomará varios minutos.`)) return;
+
+        setLoading(true);
+        setProgress(0);
+
+        for (let i = 0; i < topics.length; i++) {
+            const topic = topics[i];
+            onLog(`[${i + 1}/${topics.length}] Generando: ${topic}...\n`);
+
+            try {
+                const response = await fetch("/api/admin/generate", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ topic })
+                });
+                const data = await response.json();
+
+                if (data.success) {
+                    onLog(`✅ OK! ID: ${data.insertedId}\n`);
+                } else {
+                    onLog(`❌ Error: ${JSON.stringify(data.error)}\n`);
+                }
+            } catch (e) {
+                onLog(`❌ Error Red: ${e}\n`);
+            }
+
+            setProgress(i + 1);
+            onStatsUpdate();
+            // Small delay to be nice to APIs
+            await new Promise(r => setTimeout(r, 1000));
+        }
+
+        setLoading(false);
+        onLog(`✨ Batch "${title}" completado!\n\n`);
+        alert(`Batch completado: ${title}`);
+    };
+
+    return (
+        <div className="bg-slate-800 p-4 rounded-xl border border-white/5">
+            <div className="flex justify-between items-center mb-2">
+                <h4 className="font-semibold text-white">{title}</h4>
+                <span className="text-xs text-gray-400">{topics.length} temas</span>
+            </div>
+
+            {loading && (
+                <div className="w-full bg-slate-700 h-2 rounded-full mb-3 overflow-hidden">
+                    <div
+                        className="bg-blue-500 h-full transition-all duration-300"
+                        style={{ width: `${(progress / topics.length) * 100}%` }}
+                    />
+                </div>
+            )}
+
+            <button
+                onClick={runBatch}
+                disabled={loading}
+                className="w-full py-2 bg-blue-500/20 text-blue-400 hover:bg-blue-500/30 rounded-lg text-sm font-medium disabled:opacity-50 transition-colors"
+            >
+                {loading ? `Generando (${progress}/${topics.length})...` : "▶ Iniciar Batch"}
+            </button>
+        </div>
+    );
+}
+
 export default function AdminPage() {
     const [services, setServices] = useState<ServiceStatus[]>([]);
     const [summary, setSummary] = useState<StatusSummary | null>(null);
@@ -355,6 +429,64 @@ export default function AdminPage() {
                     <p className="text-sm text-gray-400">
                         Usa el modelo <strong>Llama 3.3 70B</strong> (SambaNova) para generar contenido y lo guarda automáticamente en Supabase.
                     </p>
+                </div>
+
+                {/* Batch Content Generator */}
+                <div className="bg-white/5 rounded-2xl border border-white/10 p-6 mb-8">
+                    <h3 className="text-lg font-semibold text-white mb-4">🚀 Generación Masiva (Batch)</h3>
+                    <p className="text-sm text-gray-400 mb-4">
+                        Genera módulos completos automáticamente. Asegúrate de monitorear el progreso.
+                    </p>
+
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <BatchButton
+                            title="📚 Lectura y Escritura (15 clases)"
+                            topics={[
+                                "Las vocales y sus sonidos", "El abecedario completo", "Sílabas simples", "Formando palabras cortas",
+                                "Uso de mayúsculas", "Signos de puntuación", "Comprensión lectora básica", "Escribiendo datos personales",
+                                "Tipos de textos: receta", "Sinónimos y antónimos", "Verbos: tiempos simples", "Adjetivos y descripciones",
+                                "La oración simple", "Reglas de acentuación", "Escribiendo una carta"
+                            ]}
+                            onLog={(msg) => setTestOutput(prev => msg + prev)}
+                            onStatsUpdate={fetchSupabaseStats}
+                        />
+
+                        <BatchButton
+                            title="🧪 Ciencias Naturales (12 clases)"
+                            topics={[
+                                "Los cinco sentidos", "El sistema digestivo", "El sistema respiratorio", "El sistema solar",
+                                "Ciclo del agua", "Las plantas y sus partes", "Animales vertebrados e invertebrados",
+                                "Salud e higiene personal", "Ecosistemas de México", "Cuidado del medio ambiente (3R)",
+                                "La energía eléctrica", "Fenómenos naturales"
+                            ]}
+                            onLog={(msg) => setTestOutput(prev => msg + prev)}
+                            onStatsUpdate={fetchSupabaseStats}
+                        />
+
+                        <BatchButton
+                            title="🌎 Ciencias Sociales (12 clases)"
+                            topics={[
+                                "Historia de la Independencia", "La Revolución Mexicana", "La Constitución y derechos",
+                                "Geografía de México", "Diversidad cultural", "Tradiciones: Día de Muertos",
+                                "Familia y comunidad", "Derechos de los niños", "La democracia",
+                                "Símbolos patrios", "Culturas prehispánicas", "Economía familiar"
+                            ]}
+                            onLog={(msg) => setTestOutput(prev => msg + prev)}
+                            onStatsUpdate={fetchSupabaseStats}
+                        />
+
+                        <BatchButton
+                            title="📐 Matemáticas (Faltantes)"
+                            topics={[
+                                "Fracciones: conceptos básicos", "Suma de fracciones", "Resta de fracciones",
+                                "Porcentajes: concepto", "Cálculo de porcentajes", "Geometría: Cuadrado y Rectángulo",
+                                "Geometría: Triángulo", "Perímetro básico", "Área básica",
+                                "Unidades de medida", "Unidades de peso", "Unidades de tiempo"
+                            ]}
+                            onLog={(msg) => setTestOutput(prev => msg + prev)}
+                            onStatsUpdate={fetchSupabaseStats}
+                        />
+                    </div>
                 </div>
 
                 {/* Debug Console */}
