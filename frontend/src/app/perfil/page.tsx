@@ -1,195 +1,219 @@
 "use client";
 
-import { useState } from "react";
-import Link from "next/link";
+import { useAuth } from "@/contexts/AuthContext";
+import { useRouter } from "next/navigation";
+import { useEffect, useState } from "react";
+import { supabase } from "@/lib/supabase";
 
 export default function PerfilPage() {
+    const { user, loading: authLoading, signOut } = useAuth();
+    const router = useRouter();
     const [isEditing, setIsEditing] = useState(false);
-    const [userData, setUserData] = useState({
-        nombre: "María García",
-        email: "maria.garcia@ejemplo.com",
-        nivel: "Secundaria",
-        telefono: "55 1234 5678",
-        ciudad: "Ciudad de México",
-        fechaRegistro: "15 de Noviembre, 2024"
+    const [formData, setFormData] = useState({
+        nombre: "",
+        email: "",
+        nivel: "secundaria",
+    });
+    const [stats, setStats] = useState({
+        clasesCompletadas: 0,
+        promedio: 0,
+        racha: 0
     });
 
-    const stats = {
-        clasesCompletadas: 12,
-        quizzesAprobados: 8,
-        horasEstudio: 24,
-        diasRacha: 5
+    useEffect(() => {
+        if (!authLoading && !user) {
+            router.push("/login");
+        } else if (user) {
+            // Load user data
+            setFormData({
+                nombre: user.user_metadata?.nombre || "Usuario",
+                email: user.email || "",
+                nivel: user.user_metadata?.nivel || "secundaria",
+            });
+
+            // Load stats (mock for now until we have real progress table)
+            setStats({
+                clasesCompletadas: 0,
+                promedio: 0,
+                racha: 0
+            });
+        }
+    }, [user, authLoading, router]);
+
+    const handleUpdate = async () => {
+        try {
+            const { error } = await supabase.auth.updateUser({
+                data: {
+                    nombre: formData.nombre,
+                    nivel: formData.nivel
+                }
+            });
+
+            if (error) throw error;
+            setIsEditing(false);
+            // Optional: Show success toast
+        } catch (error) {
+            console.error("Error updating profile:", error);
+        }
     };
 
-    const certificados = [
-        { id: 1, nombre: "Matemáticas Básicas", fecha: "10 Dic 2024", estado: "completado" },
-        { id: 2, nombre: "Comprensión Lectora", fecha: "En progreso", estado: "progreso" }
-    ];
+    if (authLoading || !user) {
+        return (
+            <div className="min-h-screen bg-slate-900 flex items-center justify-center">
+                <div className="text-white">Cargando perfil...</div>
+            </div>
+        );
+    }
 
     return (
-        <div className="min-h-screen bg-gradient-to-br from-slate-900 via-blue-950 to-slate-900">
-            {/* Navigation */}
-            <nav className="fixed top-0 w-full z-50 bg-slate-900/80 backdrop-blur-lg border-b border-white/10">
-                <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-                    <div className="flex items-center justify-between h-16">
-                        <Link href="/" className="flex items-center gap-2">
-                            <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-blue-500 to-emerald-400 flex items-center justify-center">
-                                <span className="text-white font-bold text-xl">I</span>
-                            </div>
-                            <span className="text-white font-bold text-xl">INEA.mx</span>
-                        </Link>
-                        <div className="flex items-center gap-4">
-                            <Link href="/dashboard" className="text-gray-300 hover:text-white">Dashboard</Link>
-                            <Link href="/cursos" className="text-gray-300 hover:text-white">Cursos</Link>
+        <div className="min-h-screen bg-gradient-to-br from-slate-900 via-blue-950 to-slate-900 pb-20">
+            {/* Header */}
+            <div className="bg-slate-900/50 border-b border-white/10 pt-24 pb-12 px-4">
+                <div className="max-w-4xl mx-auto flex items-center gap-6">
+                    <div className="w-24 h-24 rounded-full bg-gradient-to-br from-blue-500 to-emerald-400 flex items-center justify-center text-3xl font-bold text-white shadow-lg shadow-blue-500/20">
+                        {formData.nombre.charAt(0).toUpperCase()}
+                    </div>
+                    <div>
+                        <h1 className="text-3xl font-bold text-white mb-2">{formData.nombre}</h1>
+                        <div className="flex items-center gap-3 text-gray-400">
+                            <span className="px-3 py-1 rounded-full bg-blue-500/20 text-blue-400 text-sm border border-blue-500/30">
+                                Estudiante de {formData.nivel.charAt(0).toUpperCase() + formData.nivel.slice(1)}
+                            </span>
+                            <span>•</span>
+                            <span>{formData.email}</span>
                         </div>
                     </div>
                 </div>
-            </nav>
+            </div>
 
-            <main className="pt-24 pb-12 px-4 max-w-4xl mx-auto">
-                {/* Profile Header */}
-                <div className="bg-white/5 rounded-2xl border border-white/10 p-6 mb-6">
-                    <div className="flex items-center gap-6">
-                        <div className="w-24 h-24 rounded-full bg-gradient-to-br from-blue-500 to-emerald-400 flex items-center justify-center text-4xl text-white font-bold">
-                            {userData.nombre.split(" ").map(n => n[0]).join("")}
-                        </div>
-                        <div className="flex-1">
-                            <h1 className="text-2xl font-bold text-white">{userData.nombre}</h1>
-                            <p className="text-gray-400">{userData.email}</p>
-                            <div className="flex items-center gap-4 mt-2">
-                                <span className="px-3 py-1 bg-blue-500/20 text-blue-400 rounded-full text-sm">
-                                    {userData.nivel}
-                                </span>
-                                <span className="text-gray-500 text-sm">
-                                    Miembro desde {userData.fechaRegistro}
-                                </span>
-                            </div>
-                        </div>
-                        <button
-                            onClick={() => setIsEditing(!isEditing)}
-                            className="px-4 py-2 bg-white/10 text-white rounded-lg hover:bg-white/20 transition-colors"
-                        >
-                            {isEditing ? "Guardar" : "Editar Perfil"}
-                        </button>
-                    </div>
-                </div>
-
-                {/* Stats Grid */}
-                <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
-                    <div className="bg-white/5 rounded-xl p-4 border border-white/10 text-center">
-                        <div className="text-3xl font-bold text-blue-400">{stats.clasesCompletadas}</div>
-                        <div className="text-gray-400 text-sm">Clases Completadas</div>
-                    </div>
-                    <div className="bg-white/5 rounded-xl p-4 border border-white/10 text-center">
-                        <div className="text-3xl font-bold text-emerald-400">{stats.quizzesAprobados}</div>
-                        <div className="text-gray-400 text-sm">Quizzes Aprobados</div>
-                    </div>
-                    <div className="bg-white/5 rounded-xl p-4 border border-white/10 text-center">
-                        <div className="text-3xl font-bold text-purple-400">{stats.horasEstudio}h</div>
-                        <div className="text-gray-400 text-sm">Horas de Estudio</div>
-                    </div>
-                    <div className="bg-white/5 rounded-xl p-4 border border-white/10 text-center">
-                        <div className="text-3xl font-bold text-amber-400">{stats.diasRacha}🔥</div>
-                        <div className="text-gray-400 text-sm">Días de Racha</div>
-                    </div>
-                </div>
-
-                <div className="grid md:grid-cols-2 gap-6">
-                    {/* Personal Info */}
+            <main className="max-w-4xl mx-auto px-4 mt-8 grid md:grid-cols-3 gap-8">
+                {/* Left Column: Stats */}
+                <div className="md:col-span-1 space-y-6">
                     <div className="bg-white/5 rounded-2xl border border-white/10 p-6">
-                        <h2 className="text-lg font-semibold text-white mb-4">Información Personal</h2>
-                        <div className="space-y-4">
+                        <h3 className="text-lg font-semibold text-white mb-4">Progreso</h3>
+                        <div className="space-y-6">
                             <div>
-                                <label className="text-gray-400 text-sm">Nombre Completo</label>
-                                <input
-                                    type="text"
-                                    value={userData.nombre}
-                                    onChange={(e) => setUserData({ ...userData, nombre: e.target.value })}
-                                    disabled={!isEditing}
-                                    className="w-full mt-1 bg-slate-700 text-white rounded-lg px-4 py-2 disabled:opacity-50"
-                                />
+                                <div className="flex justify-between text-sm mb-2">
+                                    <span className="text-gray-400">Nivel Completado</span>
+                                    <span className="text-white font-medium">0%</span>
+                                </div>
+                                <div className="h-2 bg-slate-700 rounded-full overflow-hidden">
+                                    <div className="h-full bg-gradient-to-r from-blue-500 to-emerald-400 w-0" />
+                                </div>
                             </div>
+
+                            <div className="grid grid-cols-2 gap-4">
+                                <div className="bg-slate-800/50 rounded-xl p-3 text-center">
+                                    <span className="block text-2xl font-bold text-white">{stats.clasesCompletadas}</span>
+                                    <span className="text-xs text-gray-400">Clases</span>
+                                </div>
+                                <div className="bg-slate-800/50 rounded-xl p-3 text-center">
+                                    <span className="block text-2xl font-bold text-emerald-400">{stats.promedio}</span>
+                                    <span className="text-xs text-gray-400">Promedio</span>
+                                </div>
+                            </div>
+
+                            <div className="bg-amber-500/10 border border-amber-500/20 rounded-xl p-4 flex items-center gap-3">
+                                <span className="text-2xl">🔥</span>
+                                <div>
+                                    <div className="text-white font-bold">{stats.racha} días</div>
+                                    <div className="text-xs text-amber-400">Racha de estudio</div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div className="bg-white/5 rounded-2xl border border-white/10 p-6">
+                        <h3 className="text-lg font-semibold text-white mb-4">Certificados</h3>
+                        <div className="text-center py-8 text-gray-500">
+                            <span className="text-4xl block mb-2 opacity-50">🎓</span>
+                            <p className="text-sm">Completa tus cursos para obtener certificados</p>
+                        </div>
+                    </div>
+                </div>
+
+                {/* Right Column: Settings */}
+                <div className="md:col-span-2 space-y-6">
+                    <div className="bg-white/5 rounded-2xl border border-white/10 p-6">
+                        <div className="flex items-center justify-between mb-6">
+                            <h3 className="text-lg font-semibold text-white">Información Personal</h3>
+                            <button
+                                onClick={() => isEditing ? handleUpdate() : setIsEditing(true)}
+                                className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${isEditing
+                                        ? "bg-emerald-500 text-white hover:bg-emerald-600"
+                                        : "bg-white/10 text-white hover:bg-white/20"
+                                    }`}
+                            >
+                                {isEditing ? "Guardar Cambios" : "Editar Perfil"}
+                            </button>
+                        </div>
+
+                        <div className="space-y-4">
+                            <div className="grid md:grid-cols-2 gap-4">
+                                <div>
+                                    <label className="block text-sm text-gray-400 mb-1">Nombre Completo</label>
+                                    <input
+                                        type="text"
+                                        disabled={!isEditing}
+                                        value={formData.nombre}
+                                        onChange={(e) => setFormData({ ...formData, nombre: e.target.value })}
+                                        className="w-full bg-slate-900 border border-white/10 rounded-lg px-4 py-3 text-white disabled:opacity-50 disabled:cursor-not-allowed"
+                                    />
+                                </div>
+                                <div>
+                                    <label className="block text-sm text-gray-400 mb-1">Nivel Educativo</label>
+                                    <select
+                                        disabled={!isEditing}
+                                        value={formData.nivel}
+                                        onChange={(e) => setFormData({ ...formData, nivel: e.target.value })}
+                                        className="w-full bg-slate-900 border border-white/10 rounded-lg px-4 py-3 text-white disabled:opacity-50 disabled:cursor-not-allowed"
+                                    >
+                                        <option value="primaria">Primaria</option>
+                                        <option value="secundaria">Secundaria</option>
+                                    </select>
+                                </div>
+                            </div>
+
                             <div>
-                                <label className="text-gray-400 text-sm">Correo Electrónico</label>
+                                <label className="block text-sm text-gray-400 mb-1">Correo Electrónico</label>
                                 <input
                                     type="email"
-                                    value={userData.email}
                                     disabled
-                                    className="w-full mt-1 bg-slate-700 text-white rounded-lg px-4 py-2 opacity-50"
-                                />
-                            </div>
-                            <div>
-                                <label className="text-gray-400 text-sm">Teléfono</label>
-                                <input
-                                    type="tel"
-                                    value={userData.telefono}
-                                    onChange={(e) => setUserData({ ...userData, telefono: e.target.value })}
-                                    disabled={!isEditing}
-                                    className="w-full mt-1 bg-slate-700 text-white rounded-lg px-4 py-2 disabled:opacity-50"
-                                />
-                            </div>
-                            <div>
-                                <label className="text-gray-400 text-sm">Ciudad</label>
-                                <input
-                                    type="text"
-                                    value={userData.ciudad}
-                                    onChange={(e) => setUserData({ ...userData, ciudad: e.target.value })}
-                                    disabled={!isEditing}
-                                    className="w-full mt-1 bg-slate-700 text-white rounded-lg px-4 py-2 disabled:opacity-50"
+                                    value={formData.email}
+                                    className="w-full bg-slate-900/50 border border-white/5 rounded-lg px-4 py-3 text-gray-400 cursor-not-allowed"
                                 />
                             </div>
                         </div>
                     </div>
 
-                    {/* Certificates */}
                     <div className="bg-white/5 rounded-2xl border border-white/10 p-6">
-                        <h2 className="text-lg font-semibold text-white mb-4">Mis Certificados</h2>
-                        <div className="space-y-3">
-                            {certificados.map((cert) => (
-                                <div
-                                    key={cert.id}
-                                    className="flex items-center justify-between p-3 bg-slate-800/50 rounded-xl"
-                                >
-                                    <div className="flex items-center gap-3">
-                                        <span className="text-2xl">
-                                            {cert.estado === "completado" ? "🎓" : "📝"}
-                                        </span>
-                                        <div>
-                                            <div className="text-white font-medium">{cert.nombre}</div>
-                                            <div className="text-gray-400 text-sm">{cert.fecha}</div>
-                                        </div>
-                                    </div>
-                                    {cert.estado === "completado" ? (
-                                        <button className="px-3 py-1 bg-emerald-500/20 text-emerald-400 rounded-lg text-sm hover:bg-emerald-500/30">
-                                            Descargar PDF
-                                        </button>
-                                    ) : (
-                                        <span className="px-3 py-1 bg-amber-500/20 text-amber-400 rounded-lg text-sm">
-                                            En Progreso
-                                        </span>
-                                    )}
-                                </div>
-                            ))}
+                        <h3 className="text-lg font-semibold text-white mb-4">Preferencias</h3>
+                        <div className="space-y-4">
+                            <label className="flex items-center justify-between p-3 bg-slate-900/50 rounded-xl cursor-pointer hover:bg-slate-900 transition-colors">
+                                <span className="text-gray-300">Notificaciones por correo</span>
+                                <input type="checkbox" defaultChecked className="w-5 h-5 rounded border-gray-600 bg-slate-800 text-blue-500" />
+                            </label>
+                            <label className="flex items-center justify-between p-3 bg-slate-900/50 rounded-xl cursor-pointer hover:bg-slate-900 transition-colors">
+                                <span className="text-gray-300">Modo oscuro automático</span>
+                                <input type="checkbox" defaultChecked className="w-5 h-5 rounded border-gray-600 bg-slate-800 text-blue-500" />
+                            </label>
                         </div>
-                        <Link href="/cursos" className="block mt-4 text-center text-blue-400 hover:text-blue-300 text-sm">
-                            Ver más cursos para certificarte →
-                        </Link>
                     </div>
-                </div>
 
-                {/* Danger Zone */}
-                <div className="mt-6 bg-red-500/10 rounded-2xl border border-red-500/30 p-6">
-                    <h2 className="text-lg font-semibold text-red-400 mb-2">Zona de Peligro</h2>
-                    <p className="text-gray-400 text-sm mb-4">
-                        Estas acciones son permanentes y no se pueden deshacer.
-                    </p>
-                    <div className="flex gap-4">
-                        <button className="px-4 py-2 bg-red-500/20 text-red-400 rounded-lg hover:bg-red-500/30 transition-colors">
-                            Eliminar Cuenta
-                        </button>
-                        <button className="px-4 py-2 bg-white/10 text-gray-300 rounded-lg hover:bg-white/20 transition-colors">
-                            Descargar mis Datos
-                        </button>
+                    <div className="bg-red-500/5 rounded-2xl border border-red-500/10 p-6">
+                        <h3 className="text-lg font-semibold text-red-400 mb-4">Zona de Peligro</h3>
+                        <div className="flex items-center justify-between">
+                            <div>
+                                <p className="text-white font-medium">Cerrar Sesión</p>
+                                <p className="text-sm text-gray-500">Finaliza tu sesión actual en este dispositivo</p>
+                            </div>
+                            <button
+                                onClick={signOut}
+                                className="px-4 py-2 border border-red-500/30 text-red-400 rounded-lg hover:bg-red-500/10 transition-colors"
+                            >
+                                Cerrar Sesión
+                            </button>
+                        </div>
                     </div>
                 </div>
             </main>
