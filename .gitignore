@@ -43,3 +43,11 @@ deployment_stacks.md
 
 remote_n8n_compose.yml
 docker-compose.lms.yml
+frontend/node_modules
+frontend/.next
+node_modules
+.next
+*.env
+.env
+.env.local
+.env.*.local
