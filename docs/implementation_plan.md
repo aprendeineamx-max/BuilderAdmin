@@ -1,307 +1,323 @@
-# 🚀 Plan de Implementación - INEA.mx LMS (Ultra Proyecto)
+# 🚀 INEA.mx LMS - Roadmap Expandido (Ultra Proyecto)
 > **Actualizado:** 19 Diciembre 2025  
-> **Fase Actual:** 2B - AI Tutors Funcionales
+> **Versión:** 2.0 - Roadmap Completo
 
 ---
 
-## 📊 Estado General del Proyecto
+## 📊 Vista General del Proyecto
 
 ```mermaid
 gantt
-    title INEA.mx LMS - Roadmap
+    title INEA.mx LMS - Roadmap 2024-2025
     dateFormat  YYYY-MM-DD
-    section Fase 1
-    Fundación           :done, 2024-12-01, 2024-12-15
-    section Fase 2
-    Backend Infrastructure :done, 2024-12-16, 2024-12-19
-    AI Tutors           :active, 2024-12-19, 2024-12-22
-    Content Generation  :2024-12-22, 2024-12-26
-    section Fase 3
-    Frontend LMS        :2024-12-27, 2025-01-10
-    section Fase 4
-    Security            :2025-01-11, 2025-01-15
-    section Fase 5
-    Production          :2025-01-16, 2025-01-30
+    section Fundación
+    Fase 1: Infra Base       :done, f1, 2024-12-01, 15d
+    Fase 2: Backend + AI     :done, f2, 2024-12-16, 5d
+    section Core
+    Fase 3: Frontend LMS     :active, f3, 2024-12-19, 14d
+    Fase 4: Contenido Masivo :f4, after f3, 7d
+    section Expansión
+    Fase 5: Autenticación    :f5, after f4, 5d
+    Fase 6: Producción       :f6, after f5, 10d
+    section Avanzado
+    Fase 7: Analytics        :f7, after f6, 7d
+    Fase 8: Mobile App       :f8, after f7, 14d
+    section Premium
+    Fase 9: Monetización     :f9, after f8, 7d
+    Fase 10: AI Avanzada     :f10, after f9, 14d
 ```
 
 ---
 
-## ✅ Fase 1: Fundación (COMPLETADA)
+## ✅ FASES COMPLETADAS
 
-| Componente | Estado | Detalles |
-|------------|--------|----------|
-| **Infraestructura 3-VPS** | ✅ | Support (216.238.70.204), Main (64.177.81.23), Mirror |
-| **VPS Manager Panel** | ✅ | Next.js en `http://216.238.70.204:3005` |
-| **n8n Automation** | ✅ | 4 workflows activos |
-| **Directus CMS** | ✅ | Backend en VPS Main con PostgreSQL + Redis |
-| **Alta Disponibilidad** | ✅ | VPS Mirror clonado y funcional |
-| **GitHub Repo** | ✅ | BuilderAdmin consolidado |
+### Fase 1: Fundación ✅ 100%
+- [x] Infraestructura 3-VPS (Support, Main, Mirror)
+- [x] VPS Manager Panel (http://216.238.70.204:3005)
+- [x] n8n Automation (4 workflows)
+- [x] Directus CMS + PostgreSQL + Redis
+- [x] Alta Disponibilidad (Mirror VPS)
+- [x] GitHub Repo BuilderAdmin
 
----
-
-## ✅ Fase 2A: Backend Infrastructure (COMPLETADA)
-
-### Supabase Instalado y Configurado
-
-| Componente | Estado | URL/Detalles |
-|------------|--------|--------------|
-| Studio GUI | ✅ | `http://64.177.81.23:3001` |
-| REST API | ✅ | `http://64.177.81.23:8000` |
-| PostgreSQL | ✅ | Puerto 5432, RLS disabled |
-| Tabla clases_generadas | ✅ | 5 columnas, permisos OK |
-
-### n8n Workflows Configurados
-
-| Workflow | Estado | Webhook |
-|----------|--------|---------|
-| INEA Class Generator - SambaNova | ✅ | `/webhook/inea-class-sambanova` |
-| INEA Class Generator v2 | ✅ | `/webhook/inea-generate-class` |
-| INEA Class + Supabase Storage | ✅ | `/webhook/inea-class-to-supabase` |
-| INEA Class + Supabase V2 | ✅ | `/webhook/clase-supabase` |
-
-### Credenciales Documentadas
-
-- ✅ VPS SSH access (3 servidores)
-- ✅ Dokploy SSH keys (ED25519 + RSA)
-- ✅ API Keys (Gemini, SambaNova, Groq, OpenRouter)
-- ✅ Supabase keys (ANON, SERVICE_ROLE)
-- ✅ n8n API Key (expires Jan 2026)
+### Fase 2: Backend + AI ✅ 100%
+- [x] Supabase instalado (Studio :3001, API :8000)
+- [x] Tabla clases_generadas configurada
+- [x] Chat Tutor API con Groq (Llama 3.3 70B)
+- [x] Integración SambaNova para generación
+- [x] API keys seguras (.env.local)
+- [x] Documentación completa (secrets.md)
 
 ---
 
-## 🔄 Fase 2B: AI Tutors Funcionales (EN PROGRESO - 75%)
+## 🔄 FASES EN PROGRESO
 
-### Completado
-- ✅ SambaNova Llama 3.3 70B probado y funcionando
-- ✅ Workflows de generación de clases creados
-- ✅ Integración con Supabase configurada
-- ✅ SERVICE_ROLE_KEY en workflows
+### Fase 3: Frontend LMS 🔄 85%
 
-### Pendiente
+**Estado actual:**
+- [x] Landing Page (dark premium theme)
+- [x] Login/Register (UI completa)
+- [x] Dashboard con progreso
+- [x] Chat Tutor interactivo
+- [x] Cursos con filtros (Supabase)
+- [x] Clase View dinámica
+- [ ] Perfil de usuario
+- [ ] Sistema de progreso real
+- [ ] Quizzes interactivos funcionales
 
-#### 2B.1 Debugging Webhook Response (1-2 horas)
+**Próximas mejoras:**
+- [ ] Animaciones y transiciones
+- [ ] Dark/Light mode toggle
+- [ ] Diseño responsive mejorado
+- [ ] PWA support (offline mode)
 
-```mermaid
-graph LR
-    A[Webhook recibe request] --> B[Generate Class node]
-    B --> C[Format Data node]
-    C --> D[Save to Supabase]
-    D --> E[Response node]
-    E --> F[Send Response]
-    style E fill:#ffcc00
-```
+---
+
+## 📋 FASES PENDIENTES
+
+### Fase 4: Contenido Educativo Masivo ⏳
+
+**Objetivo:** Biblioteca completa de clases INEA
+
+**Módulos a crear:**
+
+| Módulo | Clases | Prioridad |
+|--------|--------|-----------|
+| Matemáticas | 20 | 🔴 Alta |
+| Lectura/Escritura | 15 | 🔴 Alta |
+| Ciencias Naturales | 12 | 🟠 Media |
+| Ciencias Sociales | 12 | 🟠 Media |
+| Formación Cívica | 8 | 🟡 Baja |
+| Educación Financiera | 6 | 🟡 Baja |
 
 **Tareas:**
-- [ ] Abrir n8n UI (`http://216.238.70.204:5678`)
-- [ ] Ejecutar workflow manualmente con test data
-- [ ] Verificar output de cada nodo
-- [ ] Ajustar Response node para devolver JSON correcto
-- [ ] Probar con curl/Postman
+- [ ] Script batch para generación masiva
+- [ ] Template JSON estandarizado para clases
+- [ ] Sistema de versionado de contenido
+- [ ] Editor de contenido para admin
+- [ ] Quizzes auto-generados por IA
+- [ ] Recursos multimedia (imágenes, audio)
 
-#### 2B.2 Chat Tutor Endpoint (4-6 horas)
+---
 
-**Crear:** `/api/tutor/chat`
+### Fase 5: Autenticación y Usuarios ⏳
 
-```javascript
-// Estructura esperada
-POST /api/tutor/chat
-{
-  "message": "¿Cómo sumo fracciones?",
-  "lesson_context": "fracciones_basicas",
-  "student_id": "uuid"
-}
+**Objetivo:** Sistema de usuarios completo
 
-// Response (<500ms via Groq)
-{
-  "response": "Para sumar fracciones...",
-  "tokens_used": 150,
-  "model": "llama-3.2-90b-text-preview"
-}
+**Tareas:**
+- [ ] Supabase Auth integrado en frontend
+- [ ] Registro con email verification
+- [ ] Login social (Google, Facebook)
+- [ ] Roles: estudiante, tutor, admin
+- [ ] Perfil de usuario editable
+- [ ] Sistema de progreso por estudiante
+- [ ] Historial de clases completadas
+- [ ] Certificados digitales
+
+**Tabla usuarios Supabase:**
+```sql
+CREATE TABLE usuarios (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  email text UNIQUE NOT NULL,
+  nombre text NOT NULL,
+  nivel text DEFAULT 'primaria',
+  progreso jsonb DEFAULT '{}',
+  created_at timestamptz DEFAULT now()
+);
 ```
 
 ---
 
-## 📚 Fase 2C: Generación de Contenido Educativo (3-5 días)
+### Fase 6: Producción y Deployment ⏳
 
-### Objetivo
-Crear biblioteca completa de clases para el programa INEA México.
+**Objetivo:** Sistema listo para usuarios reales
 
-### Estructura de Contenido
-
-```mermaid
-graph TB
-    subgraph "Módulo Matemáticas"
-        M1[Números naturales]
-        M2[Fracciones]
-        M3[Decimales]
-        M4[Porcentajes]
-        M5[Geometría básica]
-    end
-    
-    subgraph "Módulo Lectura"
-        L1[Comprensión lectora]
-        L2[Vocabulario]
-        L3[Redacción]
-        L4[Ortografía]
-    end
-    
-    subgraph "Módulo Ciencias"
-        C1[Naturaleza]
-        C2[Salud]
-        C3[Medio ambiente]
-    end
-    
-    subgraph "Módulo Sociedad"
-        S1[Historia México]
-        S2[Geografía]
-        S3[Civismo]
-    end
-```
-
-### Tareas
-
-1. **Template de Clase (JSON Schema)**
-   - [ ] Definir estructura estándar
-   - [ ] Incluir: título, objetivos, contenido, ejemplos, quiz
-   - [ ] Campos para multimedia (placeholder)
-
-2. **Generación Masiva**
-   - [ ] Crear script para generar 20+ clases
-   - [ ] Usar workflow n8n + Supabase
-   - [ ] Revisar calidad de contenido
-
-3. **Organización en Base de Datos**
-   - [ ] Crear tabla `modulos` (categorías)
-   - [ ] Crear tabla `estudiantes_progreso`
-   - [ ] Relacionar clases con módulos
-
----
-
-## 🖥️ Fase 3: Frontend LMS para Estudiantes (1-2 semanas)
-
-### Stack Tecnológico
-
-| Componente | Tecnología |
-|------------|------------|
-| Framework | Next.js 15 (App Router) |
-| Estilos | Tailwind CSS + Shadcn/UI |
-| Backend | Supabase (Auth + DB + Storage) |
-| Chat IA | WebSocket + Groq API |
-| Hosting | VPS Main (Docker) |
-
-### Páginas a Desarrollar
-
-```mermaid
-graph TD
-    A[Landing Page] --> B[Login/Register]
-    B --> C[Dashboard]
-    C --> D[Cursos]
-    C --> E[Perfil]
-    D --> F[Clase View]
-    F --> G[Quiz]
-    F --> H[Chat Tutor]
-    G --> I[Resultados]
-```
-
-| Página | Prioridad | Complejidad | Funcionalidades |
-|--------|-----------|-------------|-----------------|
-| Landing | 🔴 Alta | Baja | Hero, Features, CTA |
-| Login/Register | 🔴 Alta | Media | Supabase Auth |
-| Dashboard | 🔴 Alta | Media | Cursos, Progreso |
-| Clase View | 🔴 Alta | Alta | Contenido, Quiz, Chat |
-| Chat Tutor | 🟠 Media | Alta | WebSocket, Contexto |
-| Perfil | 🟡 Baja | Baja | Datos, Certificados |
-
-### Diseño UI/UX
-
-- **Tema:** Oscuro moderno, accesible
-- **Colores:** Azul INEA (#003366), acentos verdes
-- **Tipografía:** Inter, Roboto
-- **Animaciones:** Micro-interacciones sutiles
-
----
-
-## 🔐 Fase 4: Seguridad y Estabilidad (3-5 días)
-
-### Tareas
-
-1. **Autenticación VPS Panel**
-   - [ ] Implementar NextAuth
-   - [ ] Login con credenciales Directus
-   - [ ] Middleware de protección
-
-2. **Backups Automáticos**
-   - [ ] Cron job diario (3 AM)
-   - [ ] Retención: 7 días rolling
-   - [ ] Notificación por n8n si falla
-
-3. **HTTPS**
-   - [ ] Let's Encrypt via Traefik
-   - [ ] Certificados auto-renovables
-   - [ ] Redirección HTTP → HTTPS
-
-4. **Rate Limiting**
-   - [ ] Limitar requests por IP
-   - [ ] Proteger endpoints sensibles
-   - [ ] Logs de intentos sospechosos
-
----
-
-## 🚀 Fase 5: Producción (2-3 semanas)
-
-### Infraestructura
-
+**Infraestructura:**
 - [ ] Dominio personalizado (aprendeinea.mx)
-- [ ] SSL/TLS en todos los servicios
-- [ ] CDN para assets estáticos (Cloudflare)
-- [ ] Load balancer entre Main y Mirror
+- [ ] SSL/TLS con Let's Encrypt
+- [ ] Nginx reverse proxy
+- [ ] Docker Compose para frontend
+- [ ] CI/CD con GitHub Actions
+- [ ] Auto-deploy en push a main
 
-### Monitoreo
+**Performance:**
+- [ ] CDN para assets (Cloudflare)
+- [ ] Image optimization
+- [ ] Code splitting
+- [ ] Lazy loading de componentes
 
-- [ ] Grafana + Prometheus
-- [ ] Alertas por correo/Telegram
-- [ ] Dashboard de métricas
+**Monitoreo:**
+- [ ] Uptime monitoring
+- [ ] Error tracking (Sentry)
 - [ ] Logs centralizados
 
-### CI/CD
+---
 
-- [ ] GitHub Actions para deploy automático
-- [ ] Tests antes de merge
-- [ ] Rollback automático si falla
+### Fase 7: Analytics y Reportes ⏳
 
-### Documentación
+**Objetivo:** Métricas para toma de decisiones
 
-- [ ] Manual de usuario (estudiantes)
-- [ ] Manual de administrador
-- [ ] API documentation (Swagger)
+**Dashboard Admin:**
+- [ ] Usuarios activos (diario/semanal)
+- [ ] Clases más populares
+- [ ] Tiempo promedio por clase
+- [ ] Tasa de completación de cursos
+- [ ] Preguntas frecuentes al tutor
+- [ ] Performance del Chat IA
+
+**Tablas para analytics:**
+```sql
+CREATE TABLE eventos_usuario (
+  id serial PRIMARY KEY,
+  usuario_id uuid REFERENCES usuarios(id),
+  tipo text NOT NULL, -- 'clase_vista', 'quiz_completado', 'chat_mensaje'
+  metadata jsonb,
+  created_at timestamptz DEFAULT now()
+);
+
+CREATE TABLE sesiones (
+  id serial PRIMARY KEY,
+  usuario_id uuid REFERENCES usuarios(id),
+  inicio timestamptz NOT NULL,
+  fin timestamptz,
+  paginas_visitadas jsonb
+);
+```
 
 ---
 
-## 📞 Recursos del Sistema
+### Fase 8: Aplicación Móvil ⏳
+
+**Objetivo:** App nativa para Android/iOS
+
+**Tecnología:** React Native + Expo
+
+**Funcionalidades:**
+- [ ] Todas las funciones del web
+- [ ] Notificaciones push
+- [ ] Modo offline (descargar clases)
+- [ ] Audio de lecciones
+- [ ] Reconocimiento de voz para tutor
+- [ ] Widgets de progreso
+
+**Publicación:**
+- [ ] Google Play Store
+- [ ] Apple App Store
+- [ ] APK directa para Android
+
+---
+
+### Fase 9: Monetización (Opcional) ⏳
+
+**Objetivo:** Modelo de sostenibilidad
+
+**Opciones:**
+1. **Freemium:**
+   - Básico: 5 clases/mes gratis
+   - Premium: Acceso ilimitado
+   
+2. **Institucional:**
+   - Licencias para escuelas
+   - Reportes personalizados
+   
+3. **Certificaciones:**
+   - Certificado básico: gratis
+   - Certificado verificado: con costo
+
+**Integraciones de pago:**
+- [ ] Stripe (tarjetas)
+- [ ] MercadoPago (México)
+- [ ] PayPal
+
+---
+
+### Fase 10: IA Avanzada ⏳
+
+**Objetivo:** Features de IA de siguiente nivel
+
+**Funcionalidades:**
+- [ ] **Tutor adaptativo:** Ajusta dificultad según estudiante
+- [ ] **Generación de exámenes:** Crea evaluaciones personalizadas
+- [ ] **Análisis de escritura:** Retroalimentación en redacción
+- [ ] **Reconocimiento de voz:** Dictado y pronunciación
+- [ ] **Resúmenes automáticos:** De lecciones largas
+- [ ] **Traducción:** Contenido en lenguas indígenas
+
+**Modelos a integrar:**
+- Groq Whisper (voz a texto)
+- Gemini Pro Vision (análisis de imágenes)
+- Claude Sonnet (análisis profundo)
+
+---
+
+## 🎯 MEJORAS CONTINUAS
+
+### UX/UI
+- [ ] Animaciones de micro-interacción
+- [ ] Temas personalizables
+- [ ] Accesibilidad WCAG 2.1
+- [ ] Soporte para lectores de pantalla
+- [ ] Alto contraste
+
+### Performance
+- [ ] Server-side rendering optimizado
+- [ ] Edge functions para APIs
+- [ ] WebSocket para chat en tiempo real
+- [ ] Caché inteligente
+
+### Seguridad
+- [ ] Rate limiting
+- [ ] CAPTCHA en registro
+- [ ] 2FA opcional
+- [ ] Auditoría de accesos
+- [ ] Backup automático diario
+
+---
+
+## 📅 Timeline Estimado
+
+| Fase | Duración | Fecha Estimada |
+|------|----------|----------------|
+| 3. Frontend | 2 semanas | Dic 2024 |
+| 4. Contenido | 1 semana | Ene 2025 |
+| 5. Auth | 5 días | Ene 2025 |
+| 6. Producción | 10 días | Ene 2025 |
+| 7. Analytics | 1 semana | Feb 2025 |
+| 8. Mobile | 2 semanas | Feb-Mar 2025 |
+| 9. Monetización | 1 semana | Mar 2025 |
+| 10. IA Avanzada | 2 semanas | Mar-Abr 2025 |
+
+---
+
+## 🛠️ Stack Tecnológico
+
+| Capa | Tecnología |
+|------|------------|
+| Frontend Web | Next.js 15, TypeScript, Tailwind |
+| Frontend Mobile | React Native, Expo |
+| Backend API | Supabase, Next.js API Routes |
+| Base de Datos | PostgreSQL (Supabase) |
+| Autenticación | Supabase Auth |
+| AI Chat | Groq (Llama 3.3 70B) |
+| AI Generación | SambaNova (Llama 3.3 70B) |
+| Workflows | n8n |
+| CMS | Directus |
+| Hosting | VPS (Vultr), Docker |
+| CI/CD | GitHub Actions |
+| CDN | Cloudflare |
+
+---
+
+## 📞 Recursos Actuales
 
 | Recurso | URL |
 |---------|-----|
+| Frontend Dev | http://localhost:3000 |
 | VPS Panel | http://216.238.70.204:3005 |
-| n8n Workflows | http://216.238.70.204:5678 |
+| n8n | http://216.238.70.204:5678 |
 | Supabase Studio | http://64.177.81.23:3001 |
 | Supabase API | http://64.177.81.23:8000 |
-| Directus Admin | http://64.177.81.23:8055 |
-| GitHub Repo | github.com/aprendeineamx-max/BuilderAdmin |
-| Credenciales | secrets.md (local) |
+| GitHub | github.com/aprendeineamx-max/BuilderAdmin |
 
 ---
 
-## 🔧 Decisiones Técnicas
-
-| Decisión | Elegido | Alternativa | Razón |
-|----------|---------|-------------|-------|
-| IA para clases | SambaNova | Gemini | Mejor calidad en español |
-| Chat tiempo real | Groq | OpenAI | Velocidad (<500ms) |
-| Base de datos | Supabase | Directus | REST API + Auth integrado |
-| Frontend | Next.js | React | SSR + App Router |
-| Estilos | Tailwind | CSS Modules | Desarrollo rápido |
-
----
-
-> **Nota:** Trabajo ejecutado desde Antigravity. Código en BuilderAdmin.
-> Credenciales sensibles en secrets.md (no en repo público).
+> **Nota:** Este roadmap es flexible. Las prioridades pueden cambiar según feedback de usuarios y necesidades del proyecto.
