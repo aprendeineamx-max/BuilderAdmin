@@ -1,6 +1,62 @@
+"use client";
+
+import { useState } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
+import { supabase } from "@/lib/supabase";
 
 export default function RegisterPage() {
+    const router = useRouter();
+    const [formData, setFormData] = useState({
+        nombre: "",
+        apellido: "",
+        email: "",
+        password: "",
+        nivel: "secundaria"
+    });
+    const [error, setError] = useState("");
+    const [loading, setLoading] = useState(false);
+    const [acceptTerms, setAcceptTerms] = useState(false);
+
+    const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
+        setFormData({ ...formData, [e.target.name]: e.target.value });
+    };
+
+    const handleSubmit = async (e: React.FormEvent) => {
+        e.preventDefault();
+        setError("");
+
+        if (!acceptTerms) {
+            setError("Debes aceptar los términos y condiciones");
+            return;
+        }
+
+        setLoading(true);
+
+        try {
+            const { error } = await supabase.auth.signUp({
+                email: formData.email,
+                password: formData.password,
+                options: {
+                    data: {
+                        nombre: `${formData.nombre} ${formData.apellido}`,
+                        nivel: formData.nivel
+                    }
+                }
+            });
+
+            if (error) {
+                setError(error.message);
+            } else {
+                router.push("/dashboard?welcome=true");
+            }
+        } catch {
+            setError("Error al crear la cuenta. Intenta de nuevo.");
+        } finally {
+            setLoading(false);
+        }
+    };
+
     return (
         <div className="min-h-screen bg-gradient-to-br from-slate-900 via-blue-950 to-slate-900 flex items-center justify-center p-4">
             <div className="w-full max-w-md">
@@ -21,13 +77,23 @@ export default function RegisterPage() {
                         Crea tu Cuenta
                     </h1>
 
-                    <form className="space-y-4">
+                    {error && (
+                        <div className="mb-4 p-3 bg-red-500/20 border border-red-500/30 rounded-xl text-red-400 text-sm">
+                            {error}
+                        </div>
+                    )}
+
+                    <form onSubmit={handleSubmit} className="space-y-4">
                         <div className="grid grid-cols-2 gap-4">
                             <div>
                                 <label className="block text-gray-300 text-sm mb-2">Nombre</label>
                                 <input
                                     type="text"
+                                    name="nombre"
+                                    value={formData.nombre}
+                                    onChange={handleChange}
                                     placeholder="María"
+                                    required
                                     className="w-full bg-slate-700 text-white placeholder-gray-400 rounded-xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-blue-500 border border-white/10"
                                 />
                             </div>
@@ -35,7 +101,11 @@ export default function RegisterPage() {
                                 <label className="block text-gray-300 text-sm mb-2">Apellido</label>
                                 <input
                                     type="text"
+                                    name="apellido"
+                                    value={formData.apellido}
+                                    onChange={handleChange}
                                     placeholder="García"
+                                    required
                                     className="w-full bg-slate-700 text-white placeholder-gray-400 rounded-xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-blue-500 border border-white/10"
                                 />
                             </div>
@@ -45,7 +115,11 @@ export default function RegisterPage() {
                             <label className="block text-gray-300 text-sm mb-2">Correo electrónico</label>
                             <input
                                 type="email"
+                                name="email"
+                                value={formData.email}
+                                onChange={handleChange}
                                 placeholder="tu@correo.com"
+                                required
                                 className="w-full bg-slate-700 text-white placeholder-gray-400 rounded-xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-blue-500 border border-white/10"
                             />
                         </div>
@@ -54,14 +128,24 @@ export default function RegisterPage() {
                             <label className="block text-gray-300 text-sm mb-2">Contraseña</label>
                             <input
                                 type="password"
-                                placeholder="Mínimo 8 caracteres"
+                                name="password"
+                                value={formData.password}
+                                onChange={handleChange}
+                                placeholder="Mínimo 6 caracteres"
+                                minLength={6}
+                                required
                                 className="w-full bg-slate-700 text-white placeholder-gray-400 rounded-xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-blue-500 border border-white/10"
                             />
                         </div>
 
                         <div>
                             <label className="block text-gray-300 text-sm mb-2">¿Qué nivel quieres estudiar?</label>
-                            <select className="w-full bg-slate-700 text-white rounded-xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-blue-500 border border-white/10">
+                            <select
+                                name="nivel"
+                                value={formData.nivel}
+                                onChange={handleChange}
+                                className="w-full bg-slate-700 text-white rounded-xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-blue-500 border border-white/10"
+                            >
                                 <option value="primaria">Primaria</option>
                                 <option value="secundaria">Secundaria</option>
                                 <option value="ambos">Ambos niveles</option>
@@ -69,18 +153,24 @@ export default function RegisterPage() {
                         </div>
 
                         <label className="flex items-start gap-3 text-gray-300 cursor-pointer">
-                            <input type="checkbox" className="w-4 h-4 mt-1 rounded border-gray-600 bg-slate-700 text-blue-500" />
+                            <input
+                                type="checkbox"
+                                checked={acceptTerms}
+                                onChange={(e) => setAcceptTerms(e.target.checked)}
+                                className="w-4 h-4 mt-1 rounded border-gray-600 bg-slate-700 text-blue-500"
+                            />
                             <span className="text-sm">
-                                Acepto los <a href="#" className="text-blue-400">Términos de Servicio</a> y la{" "}
-                                <a href="#" className="text-blue-400">Política de Privacidad</a>
+                                Acepto los <Link href="/terminos" className="text-blue-400">Términos de Servicio</Link> y la{" "}
+                                <Link href="/privacidad" className="text-blue-400">Política de Privacidad</Link>
                             </span>
                         </label>
 
                         <button
                             type="submit"
-                            className="w-full py-3 bg-gradient-to-r from-blue-500 to-emerald-400 text-white rounded-xl font-semibold hover:opacity-90 transition-opacity"
+                            disabled={loading}
+                            className="w-full py-3 bg-gradient-to-r from-blue-500 to-emerald-400 text-white rounded-xl font-semibold hover:opacity-90 transition-opacity disabled:opacity-50"
                         >
-                            Crear Cuenta Gratis
+                            {loading ? "Creando cuenta..." : "Crear Cuenta Gratis"}
                         </button>
                     </form>
 
