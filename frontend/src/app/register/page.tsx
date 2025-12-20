@@ -4,6 +4,7 @@ import { useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabase";
+import { Provider } from "@supabase/supabase-js";
 
 export default function RegisterPage() {
     const router = useRouter();
@@ -55,6 +56,16 @@ export default function RegisterPage() {
         } finally {
             setLoading(false);
         }
+    };
+
+    const handleOAuthLogin = async (provider: Provider) => {
+        const { error } = await supabase.auth.signInWithOAuth({
+            provider,
+            options: {
+                redirectTo: `${window.location.origin}/auth/callback`,
+            },
+        });
+        if (error) setError(error.message);
     };
 
     return (
@@ -182,6 +193,39 @@ export default function RegisterPage() {
                             </Link>
                         </p>
                     </div>
+
+                    {/* Divider */}
+                    <div className="mt-6 flex items-center">
+                        <div className="flex-1 border-t border-white/10"></div>
+                        <span className="px-4 text-gray-500 text-sm">o regístrate con</span>
+                        <div className="flex-1 border-t border-white/10"></div>
+                    </div>
+
+                    {/* Social Login */}
+                    <div className="mt-6 flex gap-3 justify-center">
+                        <button
+                            onClick={() => handleOAuthLogin('google')}
+                            className="flex-1 flex items-center justify-center gap-2 py-3 bg-white/5 border border-white/10 rounded-xl text-white hover:bg-white/10 transition-colors"
+                            title="Google"
+                        >
+                            <span>🔵</span> <span className="hidden sm:inline">Google</span>
+                        </button>
+                        <button
+                            onClick={() => handleOAuthLogin('github')}
+                            className="flex-1 flex items-center justify-center gap-2 py-3 bg-white/5 border border-white/10 rounded-xl text-white hover:bg-white/10 transition-colors"
+                            title="GitHub"
+                        >
+                            <span>🐙</span> <span className="hidden sm:inline">GitHub</span>
+                        </button>
+                        <button
+                            onClick={() => handleOAuthLogin('facebook')}
+                            className="flex-1 flex items-center justify-center gap-2 py-3 bg-white/5 border border-white/10 rounded-xl text-white hover:bg-white/10 transition-colors"
+                            title="Facebook"
+                        >
+                            <span>📘</span> <span className="hidden sm:inline">Facebook</span>
+                        </button>
+                    </div>
+
                 </div>
 
                 {/* Benefits */}
