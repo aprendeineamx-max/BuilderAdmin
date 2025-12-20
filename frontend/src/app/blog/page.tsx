@@ -2,6 +2,7 @@ import { supabase } from '@/lib/supabase';
 import BlogCard from '@/components/BlogCard';
 import Navbar from '@/components/Navbar';
 import Footer from '@/components/Footer';
+import NewsletterForm from '@/components/NewsletterForm';
 
 // Revalidate every hour
 export const revalidate = 3600;
@@ -57,6 +58,11 @@ export default async function BlogPage() {
                         </div>
                     )}
                 </div>
+            </section>
+
+            {/* Newsletter */}
+            <section className="py-8 px-4 max-w-7xl mx-auto">
+                <NewsletterForm />
             </section>
 
             <Footer />
