@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useParams, usePathname } from "next/navigation";
-import { BarChart3, Users, Settings, LogOut, Building } from "lucide-react";
+import { BarChart3, Users, Settings, LogOut, Building, FileBarChart } from "lucide-react";
 
 export default function OrgLayout({ children }: { children: React.ReactNode }) {
     const params = useParams();
@@ -35,6 +35,12 @@ export default function OrgLayout({ children }: { children: React.ReactNode }) {
                         active={pathname === `/org/${slug}/members`}
                         icon={<Users />}
                         label="Colaboradores"
+                    />
+                    <NavItem
+                        href={`/org/${slug}/reports`}
+                        active={pathname === `/org/${slug}/reports`}
+                        icon={<FileBarChart />}
+                        label="Reportes"
                     />
                     <NavItem
                         href={`/org/${slug}/settings`}
