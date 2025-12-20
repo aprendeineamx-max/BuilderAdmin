@@ -29,10 +29,10 @@ export function ToastContainer({ toasts }: { toasts: Toast[] }) {
                 <div
                     key={toast.id}
                     className={`px-4 py-3 rounded-xl shadow-lg flex items-center gap-2 animate-slide-in ${toast.type === "success"
-                            ? "bg-emerald-500 text-white"
-                            : toast.type === "error"
-                                ? "bg-red-500 text-white"
-                                : "bg-blue-500 text-white"
+                        ? "bg-emerald-500 text-white"
+                        : toast.type === "error"
+                            ? "bg-red-500 text-white"
+                            : "bg-blue-500 text-white"
                         }`}
                 >
                     <span>
@@ -58,16 +58,17 @@ export function ProgressBar({ value, max = 100 }: { value: number; max?: number 
     );
 }
 
-export function Badge({ children, variant = "default" }: { children: React.ReactNode; variant?: "default" | "success" | "warning" | "error" }) {
+export function Badge({ children, variant = "default", className = "" }: { children: React.ReactNode; variant?: "default" | "success" | "warning" | "error" | "info"; className?: string }) {
     const colors = {
         default: "bg-slate-500/20 text-slate-400",
         success: "bg-emerald-500/20 text-emerald-400",
         warning: "bg-amber-500/20 text-amber-400",
         error: "bg-red-500/20 text-red-400",
+        info: "bg-blue-500/20 text-blue-400",
     };
 
     return (
-        <span className={`px-2 py-1 rounded-full text-xs font-medium ${colors[variant]}`}>
+        <span className={`px-2 py-1 rounded-full text-xs font-medium ${colors[variant]} ${className}`}>
             {children}
         </span>
     );

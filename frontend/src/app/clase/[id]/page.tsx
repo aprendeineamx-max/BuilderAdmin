@@ -11,6 +11,8 @@ import CommentsSection from "@/components/CommentsSection"; // Phase 14: Social
 import ContributionsSection from "@/components/ContributionsSection"; // Phase 14 Part 2
 import { supabase } from "@/lib/supabase";
 import { useAuth } from "@/contexts/AuthContext";
+import NotesPanel from "@/components/NotesPanel"; // Phase 15
+import GlossaryWidget from "@/components/GlossaryWidget"; // Phase 15
 
 export default function ClasePage() {
     const { id } = useParams();
@@ -23,6 +25,7 @@ export default function ClasePage() {
     const [markedLoading, setMarkedLoading] = useState(false);
     const [toast, setToast] = useState<{ message: string, type: "success" | "error" } | null>(null);
     const [showMobileChat, setShowMobileChat] = useState(false); // Mobile chat toggle
+    const [activeTab, setActiveTab] = useState<'tutor' | 'notes' | 'glossary'>('tutor'); // Phase 15
 
     useEffect(() => {
         if (id) {
@@ -170,14 +173,46 @@ export default function ClasePage() {
                         </div>
                     </div>
 
-                    {/* Right Column: AI Tutor Widget (Sticky on Desktop) */}
+                    {/* Right Column: Tools Panel (Sticky on Desktop) */}
                     <div className="hidden lg:col-span-4 lg:flex flex-col h-full pt-2">
-                        <div className="h-full sticky top-0">
-                            <ChatTutor
-                                title={clase.tema}
-                                context={clase.contenido}
-                                className="h-[calc(100vh-8rem)] shadow-2xl shadow-black/50"
-                            />
+                        <div className="h-full sticky top-24 bg-slate-900/50 rounded-2xl border border-white/10 overflow-hidden flex flex-col shadow-2xl shadow-black/50 backdrop-blur-sm">
+
+                            {/* Tab Headers */}
+                            <div className="flex border-b border-white/10">
+                                {[
+                                    { id: 'tutor', label: '🤖 Tutor IA' },
+                                    { id: 'notes', label: '📝 Notas' },
+                                    { id: 'glossary', label: '📖 Glosario' }
+                                ].map(tab => (
+                                    <button
+                                        key={tab.id}
+                                        onClick={() => setActiveTab(tab.id as any)}
+                                        className={`flex-1 py-3 text-sm font-bold transition-colors ${activeTab === tab.id
+                                            ? 'bg-blue-500/10 text-blue-400 border-b-2 border-blue-500'
+                                            : 'text-gray-400 hover:text-white hover:bg-white/5'
+                                            }`}
+                                    >
+                                        {tab.label}
+                                    </button>
+                                ))}
+                            </div>
+
+                            {/* Tab Content */}
+                            <div className="flex-1 overflow-hidden relative">
+                                <div className={`absolute inset-0 transition-opacity duration-300 ${activeTab === 'tutor' ? 'opacity-100 z-10' : 'opacity-0 z-0'}`}>
+                                    <ChatTutor
+                                        title={clase.tema}
+                                        context={clase.contenido}
+                                        className="h-full shadow-none border-none bg-transparent"
+                                    />
+                                </div>
+                                <div className={`absolute inset-0 transition-opacity duration-300 ${activeTab === 'notes' ? 'opacity-100 z-10' : 'opacity-0 z-0'}`}>
+                                    {activeTab === 'notes' && <NotesPanel claseId={clase.id} />}
+                                </div>
+                                <div className={`absolute inset-0 transition-opacity duration-300 ${activeTab === 'glossary' ? 'opacity-100 z-10' : 'opacity-0 z-0'}`}>
+                                    {activeTab === 'glossary' && <GlossaryWidget claseId={clase.id} />}
+                                </div>
+                            </div>
                         </div>
                     </div>
 
