@@ -125,34 +125,9 @@ export default function Navbar() {
                             ))}
                             {isLive && (
                                 <Link
-                                    href="/live"
-                                    onClick={() => setIsMenuOpen(false)}
-                                    className="flex items-center gap-2 px-4 py-3 rounded-lg bg-red-500/10 text-red-500 border border-red-500/20 animate-pulse font-bold hover:bg-red-500/20 transition-colors"
-                                >
-                                    <span>🔴</span>
-                                    <span>EN VIVO</span>
-                                </Link>
-                            )}
-                            <div className="border-t border-white/10 mt-2 pt-2">
-                                <Link
-                                    href="/login"
-                                    onClick={() => setIsMenuOpen(false)}
-                                    className="block px-4 py-3 text-gray-300 hover:bg-white/10 rounded-lg"
-                                >
-                                    Iniciar Sesión
-                                </Link>
-                                <Link
-                                    href="/register"
-                                    onClick={() => setIsMenuOpen(false)}
-                                    className="block px-4 py-3 bg-gradient-to-r from-blue-500 to-emerald-400 text-white rounded-lg text-center mt-2"
-                                >
-                                    Registrarse Gratis
-                                </Link>
-                            </div>
-                        </div>
                     </div>
                 )}
-            </div>
+                    </div>
         </nav>
     );
 }
