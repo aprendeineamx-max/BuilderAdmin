@@ -26,21 +26,27 @@ export function ToastContainer({ toasts }: { toasts: Toast[] }) {
     return (
         <div className="fixed bottom-4 right-4 z-50 space-y-2">
             {toasts.map((toast) => (
-                <div
-                    key={toast.id}
-                    className={`px-4 py-3 rounded-xl shadow-lg flex items-center gap-2 animate-slide-in ${toast.type === "success"
-                        ? "bg-emerald-500 text-white"
-                        : toast.type === "error"
-                            ? "bg-red-500 text-white"
-                            : "bg-blue-500 text-white"
-                        }`}
-                >
-                    <span>
-                        {toast.type === "success" ? "✓" : toast.type === "error" ? "✕" : "ℹ"}
-                    </span>
-                    <span>{toast.message}</span>
-                </div>
+                <Toast key={toast.id} message={toast.message} type={toast.type} onClose={() => { }} />
             ))}
+        </div>
+    );
+}
+
+export function Toast({ message, type, onClose }: { message: string, type: Toast["type"], onClose?: () => void }) {
+    return (
+        <div
+            className={`px-4 py-3 rounded-xl shadow-lg flex items-center gap-2 animate-slide-in cursor-pointer ${type === "success"
+                ? "bg-emerald-500 text-white"
+                : type === "error"
+                    ? "bg-red-500 text-white"
+                    : "bg-blue-500 text-white"
+                }`}
+            onClick={onClose}
+        >
+            <span>
+                {type === "success" ? "✓" : type === "error" ? "✕" : "ℹ"}
+            </span>
+            <span>{message}</span>
         </div>
     );
 }

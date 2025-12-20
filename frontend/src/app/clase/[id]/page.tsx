@@ -4,15 +4,16 @@ import { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import ReactMarkdown from "react-markdown";
 import Navbar from "@/components/Navbar";
-import { Footer } from "@/components/Footer";
+import Footer from "@/components/Footer";
 import { Button, Card, Badge, Skeleton, Toast } from "@/components/ui";
-import ChatTutor from "@/components/ChatTutor"; // Import new widget
-import CommentsSection from "@/components/CommentsSection"; // Phase 14: Social
-import ContributionsSection from "@/components/ContributionsSection"; // Phase 14 Part 2
+import ChatTutor from "@/components/ChatTutor";
+import CommentsSection from "@/components/CommentsSection";
+import ContributionsSection from "@/components/ContributionsSection";
 import { supabase } from "@/lib/supabase";
 import { useAuth } from "@/contexts/AuthContext";
-import NotesPanel from "@/components/NotesPanel"; // Phase 15
-import GlossaryWidget from "@/components/GlossaryWidget"; // Phase 15
+import NotesPanel from "@/components/NotesPanel";
+import GlossaryWidget from "@/components/GlossaryWidget";
+import BadgeNotification from "@/components/BadgeNotification";
 
 export default function ClasePage() {
     const { id } = useParams();
@@ -24,8 +25,9 @@ export default function ClasePage() {
     const [completed, setCompleted] = useState(false);
     const [markedLoading, setMarkedLoading] = useState(false);
     const [toast, setToast] = useState<{ message: string, type: "success" | "error" } | null>(null);
-    const [showMobileChat, setShowMobileChat] = useState(false); // Mobile chat toggle
-    const [activeTab, setActiveTab] = useState<'tutor' | 'notes' | 'glossary'>('tutor'); // Phase 15
+    const [showMobileChat, setShowMobileChat] = useState(false);
+    const [activeTab, setActiveTab] = useState<'tutor' | 'notes' | 'glossary'>('tutor');
+    const [showBadge, setShowBadge] = useState(false);
 
     useEffect(() => {
         if (id) {
@@ -56,13 +58,13 @@ export default function ClasePage() {
             const { data } = await supabase
                 .from("clases_progreso")
                 .select("completado")
-                .eq("clase_id", parseInt(id as string)) // Safe cast
+                .eq("clase_id", parseInt(id as string))
                 .eq("user_id", user?.id)
                 .single();
 
             if (data?.completado) setCompleted(true);
         } catch (error) {
-            // console.error(error); 
+            // Ignore error if not found
         }
     };
 
@@ -74,6 +76,7 @@ export default function ClasePage() {
 
         setMarkedLoading(true);
         try {
+            // 1. Mark Progress
             const { error } = await supabase
                 .from("clases_progreso")
                 .upsert({
@@ -86,8 +89,20 @@ export default function ClasePage() {
 
             if (error) throw error;
 
+            // 2. Update Streak (Gamification) RPC Call
+            // Note: If update_user_streak function fails or doesn't exist, we just catch it.
+            try {
+                await supabase.rpc('update_user_streak', { target_user_id: user.id });
+            } catch (rpcError) {
+                console.warn("Gamification RPC failed (might be dev env):", rpcError);
+            }
+
             setCompleted(true);
-            setToast({ message: "¡Felicidades! Clase completada +100 XP", type: "success" });
+            setToast({ message: "¡Felicidades! Lección completada +100 XP", type: "success" });
+
+            // 3. Trigger Celebration
+            setShowBadge(true);
+
         } catch (error) {
             console.error("Error marking complete:", error);
             setToast({ message: "Error al guardar progreso", type: "error" });
@@ -115,6 +130,11 @@ export default function ClasePage() {
     return (
         <div className="min-h-screen bg-slate-900 text-gray-100 flex flex-col">
             <Navbar />
+            <BadgeNotification
+                title="¡Racha Aumentada!"
+                message="Estás en camino a la grandeza. Sigue así."
+                trigger={showBadge}
+            />
 
             {/* Main Layout: Split Screen on Desktop */}
             <main className="flex-1 pt-24 pb-12 px-4 max-w-7xl mx-auto w-full grid grid-cols-1 lg:grid-cols-12 gap-8 h-[calc(100vh-6rem)]">
@@ -160,61 +180,63 @@ export default function ClasePage() {
                                     className="px-8 py-3 bg-blue-600 hover:bg-blue-500 text-white rounded-xl font-semibold shadow-lg shadow-blue-500/20 transition-all transform hover:scale-105"
                                 >
                                     {markedLoading ? "Guardando..." : "Marcar como Terminada"}
+                                </button>
                             )}
-                                </div>
+                        </div>
 
                         {/* Social Learning: Student Contributions */}
-                            <ContributionsSection claseId={clase.id} />
+                        <ContributionsSection claseId={clase.id} />
 
-                            {/* Social Learning: Threaded Comments */}
-                            <CommentsSection claseId={clase.id} />
+                        {/* Social Learning: Threaded Comments */}
+                        <CommentsSection claseId={clase.id} />
 
-                            <Footer />
+                        {/* Use Default Footer Export if available, else just render component */}
+                        <Footer />
+                    </div>
+                </div>
+
+                {/* Right Column: Tools Panel (Sticky on Desktop) */}
+                <div className="hidden lg:col-span-4 lg:flex flex-col h-full pt-2">
+                    <div className="h-full sticky top-24 bg-slate-900/50 rounded-2xl border border-white/10 overflow-hidden flex flex-col shadow-2xl shadow-black/50 backdrop-blur-sm">
+
+                        {/* Tab Headers */}
+                        <div className="flex border-b border-white/10">
+                            {[
+                                { id: 'tutor', label: '🤖 Tutor IA' },
+                                { id: 'notes', label: '📝 Notas' },
+                                { id: 'glossary', label: '📖 Glosario' }
+                            ].map(tab => (
+                                <button
+                                    key={tab.id}
+                                    onClick={() => setActiveTab(tab.id as any)}
+                                    className={`flex-1 py-3 text-sm font-bold transition-colors ${activeTab === tab.id
+                                        ? 'bg-blue-500/10 text-blue-400 border-b-2 border-blue-500'
+                                        : 'text-gray-400 hover:text-white hover:bg-white/5'
+                                        }`}
+                                >
+                                    {tab.label}
+                                </button>
+                            ))}
+                        </div>
+
+                        {/* Tab Content */}
+                        <div className="flex-1 overflow-hidden relative">
+                            <div className={`absolute inset-0 transition-opacity duration-300 ${activeTab === 'tutor' ? 'opacity-100 z-10' : 'opacity-0 z-0'}`}>
+                                <ChatTutor
+                                    title={clase.tema}
+                                    context={clase.contenido}
+                                    className="h-full shadow-none border-none bg-transparent"
+                                />
+                            </div>
+                            <div className={`absolute inset-0 transition-opacity duration-300 ${activeTab === 'notes' ? 'opacity-100 z-10' : 'opacity-0 z-0'}`}>
+                                {activeTab === 'notes' && <NotesPanel claseId={clase.id} />}
+                            </div>
+                            <div className={`absolute inset-0 transition-opacity duration-300 ${activeTab === 'glossary' ? 'opacity-100 z-10' : 'opacity-0 z-0'}`}>
+                                {activeTab === 'glossary' && <GlossaryWidget claseId={clase.id} />}
+                            </div>
                         </div>
                     </div>
-
-                    {/* Right Column: Tools Panel (Sticky on Desktop) */}
-                    <div className="hidden lg:col-span-4 lg:flex flex-col h-full pt-2">
-                        <div className="h-full sticky top-24 bg-slate-900/50 rounded-2xl border border-white/10 overflow-hidden flex flex-col shadow-2xl shadow-black/50 backdrop-blur-sm">
-
-                            {/* Tab Headers */}
-                            <div className="flex border-b border-white/10">
-                                {[
-                                    { id: 'tutor', label: '🤖 Tutor IA' },
-                                    { id: 'notes', label: '📝 Notas' },
-                                    { id: 'glossary', label: '📖 Glosario' }
-                                ].map(tab => (
-                                    <button
-                                        key={tab.id}
-                                        onClick={() => setActiveTab(tab.id as any)}
-                                        className={`flex-1 py-3 text-sm font-bold transition-colors ${activeTab === tab.id
-                                            ? 'bg-blue-500/10 text-blue-400 border-b-2 border-blue-500'
-                                            : 'text-gray-400 hover:text-white hover:bg-white/5'
-                                            }`}
-                                    >
-                                        {tab.label}
-                                    </button>
-                                ))}
-                            </div>
-
-                            {/* Tab Content */}
-                            <div className="flex-1 overflow-hidden relative">
-                                <div className={`absolute inset-0 transition-opacity duration-300 ${activeTab === 'tutor' ? 'opacity-100 z-10' : 'opacity-0 z-0'}`}>
-                                    <ChatTutor
-                                        title={clase.tema}
-                                        context={clase.contenido}
-                                        className="h-full shadow-none border-none bg-transparent"
-                                    />
-                                </div>
-                                <div className={`absolute inset-0 transition-opacity duration-300 ${activeTab === 'notes' ? 'opacity-100 z-10' : 'opacity-0 z-0'}`}>
-                                    {activeTab === 'notes' && <NotesPanel claseId={clase.id} />}
-                                </div>
-                                <div className={`absolute inset-0 transition-opacity duration-300 ${activeTab === 'glossary' ? 'opacity-100 z-10' : 'opacity-0 z-0'}`}>
-                                    {activeTab === 'glossary' && <GlossaryWidget claseId={clase.id} />}
-                                </div>
-                            </div>
-                        </div>
-                    </div>
+                </div>
 
             </main >
 
