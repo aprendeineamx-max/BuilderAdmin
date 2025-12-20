@@ -2,7 +2,8 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { supabase } from "@/lib/supabase";
 
 interface NavItem {
     label: string;
@@ -22,6 +23,30 @@ const navItems: NavItem[] = [
 export default function Navbar() {
     const pathname = usePathname();
     const [isMenuOpen, setIsMenuOpen] = useState(false);
+    const [isLive, setIsLive] = useState(false);
+
+    useEffect(() => {
+        checkLiveStatus();
+
+        // Subscribe to status changes
+        const sub = supabase
+            .channel('navbar-live-status')
+            .on('postgres_changes', { event: '*', schema: 'public', table: 'events' }, () => {
+                checkLiveStatus();
+            })
+            .subscribe();
+
+        return () => { supabase.removeChannel(sub); };
+    }, []);
+
+    const checkLiveStatus = async () => {
+        const { data } = await supabase
+            .from('events')
+            .select('id')
+            .eq('status', 'live')
+            .maybeSingle();
+        setIsLive(!!data);
+    };
 
     return (
         <nav className="fixed top-0 w-full z-50 bg-slate-900/80 backdrop-blur-lg border-b border-white/10">
@@ -50,6 +75,12 @@ export default function Navbar() {
                                 <span>{item.label}</span>
                             </Link>
                         ))}
+                        {isLive && (
+                            <Link href="/live" className="flex items-center gap-1 px-3 py-2 rounded-lg bg-red-500/10 text-red-500 border border-red-500/20 animate-pulse font-bold hover:bg-red-500/20 transition-colors">
+                                <span>🔴</span>
+                                <span>EN VIVO</span>
+                            </Link>
+                        )}
                     </div>
 
                     {/* Auth Buttons */}
@@ -92,6 +123,16 @@ export default function Navbar() {
                                     <span>{item.label}</span>
                                 </Link>
                             ))}
+                            {isLive && (
+                                <Link
+                                    href="/live"
+                                    onClick={() => setIsMenuOpen(false)}
+                                    className="flex items-center gap-2 px-4 py-3 rounded-lg bg-red-500/10 text-red-500 border border-red-500/20 animate-pulse font-bold hover:bg-red-500/20 transition-colors"
+                                >
+                                    <span>🔴</span>
+                                    <span>EN VIVO</span>
+                                </Link>
+                            )}
                             <div className="border-t border-white/10 mt-2 pt-2">
                                 <Link
                                     href="/login"
