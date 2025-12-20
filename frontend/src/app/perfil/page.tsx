@@ -2,21 +2,29 @@
 
 import { useEffect, useState } from "react";
 import Navbar from "@/components/Navbar";
-import { Footer } from "@/components/Footer";
-import { Avatar, Button, Card, Progress, Badge, Skeleton, Toast } from "@/components/ui";
+import Footer from "@/components/Footer";
+import { Avatar, Button, Card, ProgressBar, Badge, Skeleton } from "@/components/ui";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/lib/supabase";
 import { useRouter } from "next/navigation";
 
+// Simple Toast Component for this page
+const SimpleToast = ({ message, type, onClose }: { message: string, type: "success" | "error", onClose: () => void }) => (
+    <div className={`fixed bottom-4 right-4 z-50 px-6 py-4 rounded-xl shadow-lg flex items-center gap-3 animate-slide-in cursor-pointer ${type === "success" ? "bg-emerald-500 text-white" : "bg-red-500 text-white"
+        }`} onClick={onClose}>
+        <span>{type === "success" ? "✓" : "✕"}</span>
+        <span className="font-medium">{message}</span>
+    </div>
+);
+
 interface UserProfile {
-    nombre: string;
-    email: string;
+    id: string;
+    username: string;
+    full_name: string;
+    bio: string;
     nivel: string;
-    progreso: {
-        clases_completadas: number;
-        promedio_calificacion: number;
-        ultima_actividad: string;
-    };
+    avatar_url: string;
+    progreso: any;
 }
 
 export default function PerfilPage() {
@@ -25,7 +33,15 @@ export default function PerfilPage() {
     const [profile, setProfile] = useState<UserProfile | null>(null);
     const [loading, setLoading] = useState(true);
     const [editing, setEditing] = useState(false);
-    const [formData, setFormData] = useState({ nombre: "", nivel: "primaria" });
+
+    // Form State
+    const [formData, setFormData] = useState({
+        full_name: "",
+        username: "",
+        bio: "",
+        nivel: "primaria"
+    });
+
     const [toast, setToast] = useState<{ message: string; type: "success" | "error" } | null>(null);
 
     useEffect(() => {
@@ -42,28 +58,27 @@ export default function PerfilPage() {
         try {
             setLoading(true);
             const { data, error } = await supabase
-                .from("usuarios")
+                .from("profiles")
                 .select("*")
                 .eq("id", user?.id)
                 .single();
 
-            if (error) {
-                console.error("Error fetching profile:", error);
-                // Fallback or create if missing (though trigger should handle it)
-            }
-
             if (data) {
                 setProfile(data);
-                setFormData({ nombre: data.nombre || "", nivel: data.nivel || "primaria" });
-            } else if (user) {
-                // Fallback for immediate display if trigger hasn't finished
-                setProfile({
-                    nombre: user.user_metadata?.full_name || "Usuario",
-                    email: user.email || "",
-                    nivel: "primaria",
-                    progreso: { clases_completadas: 0, promedio_calificacion: 0, ultima_actividad: new Date().toISOString() }
+                setFormData({
+                    full_name: data.full_name || "",
+                    username: data.username || "",
+                    bio: data.bio || "",
+                    nivel: data.nivel || "primaria"
                 });
-                setFormData({ nombre: user.user_metadata?.full_name || "", nivel: "primaria" });
+            } else if (user) {
+                // Initialize form with auth data if no profile yet
+                setFormData({
+                    full_name: user.user_metadata?.full_name || "",
+                    username: user.email?.split('@')[0] || "",
+                    bio: "",
+                    nivel: "primaria"
+                });
             }
         } catch (error) {
             console.error("Error:", error);
@@ -74,19 +89,26 @@ export default function PerfilPage() {
 
     const handleUpdate = async () => {
         try {
+            const updates = {
+                full_name: formData.full_name,
+                username: formData.username,
+                bio: formData.bio,
+                // nivel: formData.nivel, // Assuming this is stored in profiles now or we ignore it
+                updated_at: new Date().toISOString(),
+            };
+
             const { error } = await supabase
-                .from("usuarios")
-                .update({
-                    nombre: formData.nombre,
-                    nivel: formData.nivel,
-                })
-                .eq("id", user?.id);
+                .from("profiles")
+                .upsert({ id: user?.id, ...updates });
 
             if (error) throw error;
 
-            setProfile(prev => prev ? { ...prev, ...formData } : null);
+            setProfile(prev => prev ? { ...prev, ...updates } as UserProfile : null);
             setEditing(false);
             setToast({ message: "Perfil actualizado correctamente", type: "success" });
+
+            // Clear toast after 3s
+            setTimeout(() => setToast(null), 3000);
         } catch (error) {
             console.error("Error updating:", error);
             setToast({ message: "Error al actualizar perfil", type: "error" });
@@ -102,7 +124,6 @@ export default function PerfilPage() {
                     <div className="grid md:grid-cols-3 gap-6">
                         <Skeleton className="h-40 rounded-xl" />
                         <Skeleton className="h-40 rounded-xl" />
-                        <Skeleton className="h-40 rounded-xl" />
                     </div>
                 </main>
             </div>
@@ -110,7 +131,7 @@ export default function PerfilPage() {
     }
 
     return (
-        <div className="min-h-screen bg-slate-900">
+        <div className="min-h-screen bg-slate-900 text-slate-100">
             <Navbar />
 
             <main className="pt-24 pb-12 px-4 max-w-4xl mx-auto">
@@ -120,13 +141,18 @@ export default function PerfilPage() {
 
                     <div className="relative z-10 flex flex-col md:flex-row items-center gap-8">
                         <div className="relative">
-                            <Avatar
-                                src={user?.user_metadata?.avatar_url || "/avatar-placeholder.png"}
-                                alt={profile?.nombre || "Usuario"}
-                                fallback={(profile?.nombre?.[0] || "U").toUpperCase()}
-                                className="w-32 h-32 border-4 border-slate-700 shadow-xl text-4xl"
-                            />
-                            <div className="absolute bottom-2 right-2 w-6 h-6 bg-emerald-500 rounded-full border-4 border-slate-800"></div>
+                            {/* Avatar Logic: Check if we have a URL, else use Initials Component */}
+                            {user?.user_metadata?.avatar_url ? (
+                                <img
+                                    src={user.user_metadata.avatar_url}
+                                    alt="Avatar"
+                                    className="w-32 h-32 rounded-full border-4 border-slate-700 shadow-xl object-cover"
+                                />
+                            ) : (
+                                <div className="transform scale-[2.0]">
+                                    <Avatar name={formData.full_name || "U"} size="lg" />
+                                </div>
+                            )}
                         </div>
 
                         <div className="flex-1 text-center md:text-left space-y-2">
@@ -134,48 +160,51 @@ export default function PerfilPage() {
                                 <div className="space-y-4 max-w-sm">
                                     <input
                                         type="text"
-                                        value={formData.nombre}
-                                        onChange={e => setFormData({ ...formData, nombre: e.target.value })}
-                                        className="w-full bg-slate-950/50 border border-white/10 rounded-lg px-4 py-2 text-white focus:outline-none focus:border-blue-500"
+                                        value={formData.full_name}
+                                        onChange={e => setFormData({ ...formData, full_name: e.target.value })}
+                                        className="w-full bg-slate-950/50 border border-white/10 rounded-lg px-4 py-2 text-white placeholder-gray-500 focus:ring-2 focus:ring-blue-500 outline-none"
                                         placeholder="Tu nombre completo"
                                     />
-                                    <select
-                                        value={formData.nivel}
-                                        onChange={e => setFormData({ ...formData, nivel: e.target.value })}
-                                        className="w-full bg-slate-950/50 border border-white/10 rounded-lg px-4 py-2 text-white focus:outline-none focus:border-blue-500"
-                                    >
-                                        <option value="primaria">Primaria</option>
-                                        <option value="secundaria">Secundaria</option>
-                                    </select>
+                                    <input
+                                        type="text"
+                                        value={formData.username}
+                                        onChange={e => setFormData({ ...formData, username: e.target.value })}
+                                        className="w-full bg-slate-950/50 border border-white/10 rounded-lg px-4 py-2 text-white placeholder-gray-500 focus:ring-2 focus:ring-blue-500 outline-none"
+                                        placeholder="Nombre de usuario (único)"
+                                    />
+                                    <textarea
+                                        value={formData.bio}
+                                        onChange={e => setFormData({ ...formData, bio: e.target.value })}
+                                        className="w-full bg-slate-950/50 border border-white/10 rounded-lg px-4 py-2 text-white placeholder-gray-500 resize-none h-24 focus:ring-2 focus:ring-blue-500 outline-none"
+                                        placeholder="Cuéntanos sobre ti..."
+                                    />
                                     <div className="flex gap-2 justify-center md:justify-start">
                                         <Button variant="primary" onClick={handleUpdate}>Guardar</Button>
-                                        <Button variant="outline" onClick={() => setEditing(false)}>Cancelar</Button>
+                                        <Button variant="secondary" onClick={() => setEditing(false)}>Cancelar</Button>
                                     </div>
                                 </div>
                             ) : (
                                 <>
-                                    <h1 className="text-3xl font-bold text-white">{profile?.nombre || "Estudiante INEA"}</h1>
-                                    <p className="text-gray-400 flex items-center justify-center md:justify-start gap-2">
-                                        <span>{profile?.email}</span>
-                                        <span className="w-1 h-1 bg-gray-500 rounded-full"></span>
-                                        <span className="capitalize text-blue-400">{profile?.nivel}</span>
+                                    <h1 className="text-3xl font-bold text-white">{formData.full_name || "Estudiante INEA"}</h1>
+                                    <p className="text-blue-400 font-mono">@{formData.username || "usuario"}</p>
+                                    <p className="text-gray-400 max-w-md mx-auto md:mx-0 truncate">
+                                        {formData.bio || "Sin biografía"}
                                     </p>
-                                    <div className="flex gap-3 justify-center md:justify-start mt-4">
-                                        <Button variant="outline" onClick={() => setEditing(true)}>
+                                    <div className="flex flex-wrap gap-3 justify-center md:justify-start mt-4">
+                                        <Button variant="secondary" onClick={() => setEditing(true)}>
                                             ✏️ Editar Perfil
                                         </Button>
+                                        {formData.username && (
+                                            <Button variant="primary" onClick={() => router.push(`/u/${formData.username}`)}>
+                                                🌐 Ver Perfil Público
+                                            </Button>
+                                        )}
                                         <Button variant="ghost" className="text-red-400 hover:text-red-300 hover:bg-red-500/10" onClick={() => supabase.auth.signOut()}>
                                             Cerrar Sesión
                                         </Button>
                                     </div>
                                 </>
                             )}
-                        </div>
-
-                        {/* Stats Summary */}
-                        <div className="bg-white/5 rounded-xl p-6 min-w-[200px] border border-white/5 text-center">
-                            <div className="text-4xl font-bold text-white mb-1">{profile?.progreso?.clases_completadas || 0}</div>
-                            <div className="text-sm text-gray-400 uppercase tracking-wider font-medium">Clases Completadas</div>
                         </div>
                     </div>
                 </div>
@@ -186,12 +215,11 @@ export default function PerfilPage() {
                     <div className="md:col-span-2 space-y-6">
                         <h2 className="text-xl font-bold text-white mb-4">Mi Progreso</h2>
 
-                        {/* Certificado en progreso */}
-                        <Card className="p-6 border-l-4 border-l-blue-500">
+                        <Card className="border-l-4 border-l-blue-500">
                             <div className="flex justify-between items-start mb-4">
                                 <div>
                                     <h3 className="text-lg font-semibold text-white">Certificado de Primaria</h3>
-                                    <p className="text-sm text-gray-400">En curso • {profile?.nivel === 'primaria' ? 'Nivel Actual' : 'Completado'}</p>
+                                    <p className="text-sm text-gray-400">En curso • Nivel Actual</p>
                                 </div>
                                 <Badge variant="warning">En Progreso</Badge>
                             </div>
@@ -201,33 +229,17 @@ export default function PerfilPage() {
                                     <span>Avance general</span>
                                     <span>{Math.min((profile?.progreso?.clases_completadas || 0) * 5, 100)}%</span>
                                 </div>
-                                <Progress value={Math.min((profile?.progreso?.clases_completadas || 0) * 5, 100)} className="h-2 bg-slate-800" indicatorClassName="bg-blue-500" />
+                                <ProgressBar value={Math.min((profile?.progreso?.clases_completadas || 0) * 5, 100)} />
                             </div>
 
                             <p className="text-sm text-gray-500">
-                                Completa todas las lecciones y quizzes para obtener tu certificado oficial verificado por la SEP.
+                                Completa todas las lecciones y quizzes para obtener tu certificado oficial.
                             </p>
                         </Card>
-
-                        {/* Recent Activity (Mocked for now until we have eventos_usuario) */}
-                        <h3 className="text-lg font-semibold text-white pt-4">Actividad Reciente</h3>
-                        <div className="space-y-3">
-                            <div className="bg-slate-800/50 rounded-lg p-4 flex items-center justify-between border border-white/5 hover:border-white/10 transition-colors">
-                                <div className="flex items-center gap-3">
-                                    <div className="w-10 h-10 rounded-full bg-emerald-500/10 flex items-center justify-center text-emerald-400">✅</div>
-                                    <div>
-                                        <div className="text-white font-medium">Registro Completado</div>
-                                        <div className="text-xs text-gray-400">Hace un momento</div>
-                                    </div>
-                                </div>
-                                <Badge variant="success">+100 XP</Badge>
-                            </div>
-                        </div>
                     </div>
 
                     {/* Sidebar */}
                     <div className="space-y-6">
-                        {/* Achievements */}
                         <div className="bg-slate-800/30 rounded-2xl p-6 border border-white/5">
                             <h3 className="text-white font-semibold mb-4">Insignias</h3>
                             <div className="grid grid-cols-3 gap-2">
@@ -242,23 +254,12 @@ export default function PerfilPage() {
                                 </div>
                             </div>
                         </div>
-
-                        {/* Next Steps */}
-                        <div className="bg-gradient-to-br from-blue-600 to-blue-800 rounded-2xl p-6 text-white shadow-lg">
-                            <h3 className="font-bold mb-2">Continúa Aprendiendo</h3>
-                            <p className="text-sm text-blue-100 mb-4">
-                                El Tutor IA está listo para ayudarte con tu siguiente lección.
-                            </p>
-                            <Button variant="default" className="w-full bg-white text-blue-700 hover:bg-blue-50" onClick={() => router.push('/chat')}>
-                                Ir con el Profe IA
-                            </Button>
-                        </div>
                     </div>
                 </div>
             </main>
 
             <Footer />
-            {toast && <Toast message={toast.message} type={toast.type} onClose={() => setToast(null)} />}
+            {toast && <SimpleToast message={toast.message} type={toast.type} onClose={() => setToast(null)} />}
         </div>
     );
 }

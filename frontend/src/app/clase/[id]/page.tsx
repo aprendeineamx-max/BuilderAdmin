@@ -7,6 +7,7 @@ import Navbar from "@/components/Navbar";
 import { Footer } from "@/components/Footer";
 import { Button, Card, Badge, Skeleton, Toast } from "@/components/ui";
 import ChatTutor from "@/components/ChatTutor"; // Import new widget
+import CommentsSection from "@/components/CommentsSection"; // Phase 14: Social
 import { supabase } from "@/lib/supabase";
 import { useAuth } from "@/contexts/AuthContext";
 
@@ -155,48 +156,53 @@ export default function ClasePage() {
                                     className="px-8 py-3 bg-blue-600 hover:bg-blue-500 text-white rounded-xl font-semibold shadow-lg shadow-blue-500/20 transition-all transform hover:scale-105"
                                 >
                                     {markedLoading ? "Guardando..." : "Marcar como Terminada"}
-                                </button>
                             )}
+                                </div>
+
+                        {/* Social Learning: Threaded Comments */}
+                            <CommentsSection claseId={clase.id} />
+
+                            <Footer />
                         </div>
-                        <Footer />
                     </div>
-                </div>
 
-                {/* Right Column: AI Tutor Widget (Sticky on Desktop) */}
-                <div className="hidden lg:col-span-4 lg:flex flex-col h-full pt-2">
-                    <div className="h-full sticky top-0">
-                        <ChatTutor
-                            title={clase.tema}
-                            context={clase.contenido}
-                            className="h-[calc(100vh-8rem)] shadow-2xl shadow-black/50"
-                        />
+                    {/* Right Column: AI Tutor Widget (Sticky on Desktop) */}
+                    <div className="hidden lg:col-span-4 lg:flex flex-col h-full pt-2">
+                        <div className="h-full sticky top-0">
+                            <ChatTutor
+                                title={clase.tema}
+                                context={clase.contenido}
+                                className="h-[calc(100vh-8rem)] shadow-2xl shadow-black/50"
+                            />
+                        </div>
                     </div>
-                </div>
 
-            </main>
+            </main >
 
             {/* Mobile Chat Toggle (Floating Button) */}
-            <div className="lg:hidden fixed bottom-6 right-6 z-50">
+            < div className="lg:hidden fixed bottom-6 right-6 z-50" >
                 <button
                     onClick={() => setShowMobileChat(!showMobileChat)}
                     className="w-14 h-14 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-full shadow-xl flex items-center justify-center text-2xl text-white border border-white/20"
                 >
                     {showMobileChat ? '✕' : '💬'}
                 </button>
-            </div>
+            </div >
 
             {/* Mobile Chat Drawer */}
-            {showMobileChat && (
-                <div className="lg:hidden fixed inset-0 z-40 bg-slate-900/90 backdrop-blur-sm pt-20 px-4 pb-20 fade-in">
-                    <ChatTutor
-                        title={clase.tema}
-                        context={clase.contenido}
-                        className="h-full shadow-2xl"
-                    />
-                </div>
-            )}
+            {
+                showMobileChat && (
+                    <div className="lg:hidden fixed inset-0 z-40 bg-slate-900/90 backdrop-blur-sm pt-20 px-4 pb-20 fade-in">
+                        <ChatTutor
+                            title={clase.tema}
+                            context={clase.contenido}
+                            className="h-full shadow-2xl"
+                        />
+                    </div>
+                )
+            }
 
             {toast && <Toast message={toast.message} type={toast.type} onClose={() => setToast(null)} />}
-        </div>
+        </div >
     );
 }
