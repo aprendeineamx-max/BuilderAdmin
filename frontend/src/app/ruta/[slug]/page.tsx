@@ -2,7 +2,7 @@
 
 import { useParams } from 'next/navigation';
 import Navbar from '@/components/Navbar';
-import { Footer } from '@/components/Footer';
+import Footer from '@/components/Footer';
 import Link from 'next/link';
 import { useState } from 'react';
 
@@ -93,7 +93,7 @@ export default function RutaPage() {
 
                             {/* Connector Dot (Desktop) */}
                             <div className={`hidden md:flex absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 w-8 h-8 rounded-full border-4 items-center justify-center z-10 transition-colors ${curso.status === 'completed' ? 'bg-green-500 border-green-900' :
-                                    curso.status === 'in_progress' ? 'bg-blue-500 border-blue-900' : 'bg-[#0a0a0a] border-gray-700'
+                                curso.status === 'in_progress' ? 'bg-blue-500 border-blue-900' : 'bg-[#0a0a0a] border-gray-700'
                                 }`}>
                                 {curso.status === 'completed' && <span className="text-black text-xs">✓</span>}
                             </div>

@@ -8,6 +8,7 @@ import { Footer } from "@/components/Footer";
 import { Button, Card, Badge, Skeleton, Toast } from "@/components/ui";
 import ChatTutor from "@/components/ChatTutor"; // Import new widget
 import CommentsSection from "@/components/CommentsSection"; // Phase 14: Social
+import ContributionsSection from "@/components/ContributionsSection"; // Phase 14 Part 2
 import { supabase } from "@/lib/supabase";
 import { useAuth } from "@/contexts/AuthContext";
 
@@ -159,7 +160,10 @@ export default function ClasePage() {
                             )}
                                 </div>
 
-                        {/* Social Learning: Threaded Comments */}
+                        {/* Social Learning: Student Contributions */}
+                            <ContributionsSection claseId={clase.id} />
+
+                            {/* Social Learning: Threaded Comments */}
                             <CommentsSection claseId={clase.id} />
 
                             <Footer />

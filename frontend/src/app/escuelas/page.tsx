@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import Navbar from '@/components/Navbar';
-import { Footer } from '@/components/Footer';
+import Footer from '@/components/Footer';
 import EscuelaCard from '@/components/EscuelaCard';
 import { supabase } from '@/lib/supabase';
 

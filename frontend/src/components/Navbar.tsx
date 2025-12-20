@@ -13,6 +13,7 @@ interface NavItem {
 const navItems: NavItem[] = [
     { label: "Inicio", href: "/", icon: "🏠" },
     { label: "Cursos", href: "/cursos", icon: "📚" },
+    { label: "Comunidad", href: "/comunidad", icon: "🌍" },
     { label: "Dashboard", href: "/dashboard", icon: "📊" },
     { label: "Chat Tutor", href: "/chat", icon: "🤖" },
     { label: "Perfil", href: "/perfil", icon: "👤" },
@@ -41,8 +42,8 @@ export default function Navbar() {
                                 key={item.href}
                                 href={item.href}
                                 className={`flex items-center gap-1 px-3 py-2 rounded-lg transition-colors ${pathname === item.href
-                                        ? "bg-blue-500/20 text-blue-400"
-                                        : "text-gray-300 hover:text-white hover:bg-white/10"
+                                    ? "bg-blue-500/20 text-blue-400"
+                                    : "text-gray-300 hover:text-white hover:bg-white/10"
                                     }`}
                             >
                                 <span>{item.icon}</span>
@@ -83,8 +84,8 @@ export default function Navbar() {
                                     href={item.href}
                                     onClick={() => setIsMenuOpen(false)}
                                     className={`flex items-center gap-2 px-4 py-3 rounded-lg ${pathname === item.href
-                                            ? "bg-blue-500/20 text-blue-400"
-                                            : "text-gray-300 hover:bg-white/10"
+                                        ? "bg-blue-500/20 text-blue-400"
+                                        : "text-gray-300 hover:bg-white/10"
                                         }`}
                                 >
                                     <span>{item.icon}</span>

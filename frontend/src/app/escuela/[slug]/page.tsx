@@ -2,7 +2,7 @@
 
 import { useParams } from 'next/navigation';
 import Navbar from '@/components/Navbar';
-import { Footer } from '@/components/Footer';
+import Footer from "@/components/Footer";
 import Link from 'next/link';
 
 // Mock Data for "Escuela de Matemáticas"
