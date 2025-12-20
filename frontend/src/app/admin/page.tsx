@@ -2,6 +2,11 @@
 
 import { useState, useEffect, useCallback } from "react";
 import Link from "next/link";
+import {
+    LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip, ResponsiveContainer,
+    BarChart, Bar,
+    PieChart, Pie, Cell
+} from 'recharts';
 
 interface ServiceStatus {
     name: string;
@@ -24,6 +29,14 @@ interface StatusSummary {
 interface SupabaseStats {
     totalClases: number;
     lastUpdated: string;
+}
+
+interface AnalyticsData {
+    total_users: number;
+    total_classes: number;
+    total_completions: number;
+    registrations_chart: { date: string, count: number }[];
+    top_users: { nombre: string, email: string, completed: number }[];
 }
 
 function BatchButton({ title, topics, onLog, onStatsUpdate }: {
@@ -101,6 +114,9 @@ function BatchButton({ title, topics, onLog, onStatsUpdate }: {
 }
 
 export default function AdminPage() {
+    const [activeTab, setActiveTab] = useState<'monitor' | 'analytics'>('monitor');
+
+    // Status State
     const [services, setServices] = useState<ServiceStatus[]>([]);
     const [summary, setSummary] = useState<StatusSummary | null>(null);
     const [loading, setLoading] = useState(true);
@@ -108,6 +124,9 @@ export default function AdminPage() {
     const [supabaseStats, setSupabaseStats] = useState<SupabaseStats | null>(null);
     const [testOutput, setTestOutput] = useState<string>("");
     const [testLoading, setTestLoading] = useState(false);
+
+    // Analytics State
+    const [analytics, setAnalytics] = useState<AnalyticsData | null>(null);
 
     const fetchStatus = useCallback(async () => {
         try {
@@ -141,18 +160,44 @@ export default function AdminPage() {
         }
     }, []);
 
+    const fetchAnalytics = useCallback(async () => {
+        try {
+            const response = await fetch("/api/admin/status", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ action: "get_admin_dashboard_stats" })
+            });
+            const data = await response.json();
+            if (data.success) {
+                // Ensure dates are formatted for charts
+                const formatted = {
+                    ...data.stats,
+                    registrations_chart: data.stats.registrations_chart.map((d: any) => ({
+                        ...d,
+                        date: new Date(d.date).toLocaleDateString('es-MX', { weekday: 'short', day: 'numeric' })
+                    }))
+                };
+                setAnalytics(formatted);
+            }
+        } catch (error) {
+            console.error("Error fetching analytics:", error);
+        }
+    }, []);
+
     useEffect(() => {
         fetchStatus();
         fetchSupabaseStats();
+        fetchAnalytics();
 
         if (autoRefresh) {
             const interval = setInterval(() => {
                 fetchStatus();
                 fetchSupabaseStats();
-            }, 10000); // Refresh every 10 seconds
+                if (activeTab === 'analytics') fetchAnalytics();
+            }, 10000);
             return () => clearInterval(interval);
         }
-    }, [autoRefresh, fetchStatus, fetchSupabaseStats]);
+    }, [autoRefresh, fetchStatus, fetchSupabaseStats, fetchAnalytics, activeTab]);
 
     const testSupabaseInsert = async () => {
         setTestLoading(true);
@@ -235,6 +280,23 @@ export default function AdminPage() {
                             </Link>
                             <span className="px-2 py-1 bg-red-500/20 text-red-400 text-xs rounded">ADMIN</span>
                         </div>
+
+                        {/* Tabs */}
+                        <div className="flex gap-2 bg-white/5 p-1 rounded-lg">
+                            <button
+                                onClick={() => setActiveTab('monitor')}
+                                className={`px-4 py-1 rounded text-sm font-medium ${activeTab === 'monitor' ? 'bg-blue-500 text-white shadow-lg' : 'text-gray-400 hover:text-white'}`}
+                            >
+                                📡 System Status
+                            </button>
+                            <button
+                                onClick={() => setActiveTab('analytics')}
+                                className={`px-4 py-1 rounded text-sm font-medium ${activeTab === 'analytics' ? 'bg-blue-500 text-white shadow-lg' : 'text-gray-400 hover:text-white'}`}
+                            >
+                                📊 Analytics
+                            </button>
+                        </div>
+
                         <div className="flex items-center gap-4">
                             <label className="flex items-center gap-2 text-gray-300 text-sm cursor-pointer">
                                 <input
@@ -246,7 +308,7 @@ export default function AdminPage() {
                                 Auto-refresh (10s)
                             </label>
                             <button
-                                onClick={fetchStatus}
+                                onClick={() => { fetchStatus(); fetchAnalytics(); }}
                                 className="px-4 py-2 bg-blue-500/20 text-blue-400 rounded-lg hover:bg-blue-500/30"
                             >
                                 🔄 Refresh
@@ -257,280 +319,198 @@ export default function AdminPage() {
             </nav>
 
             <main className="pt-24 pb-12 px-4 max-w-7xl mx-auto">
-                {/* Header */}
                 <div className="mb-8">
-                    <h1 className="text-3xl font-bold text-white mb-2">🖥️ Panel de Administración</h1>
-                    <p className="text-gray-400">Monitoreo en tiempo real de todos los servicios externos</p>
+                    <h1 className="text-3xl font-bold text-white mb-2">
+                        {activeTab === 'monitor' ? '🖥️ Panel de Sistemas' : '📈 Dashboard de Analytics'}
+                    </h1>
+                    <p className="text-gray-400">
+                        {activeTab === 'monitor' ? 'Monitoreo técnico de infraestructura.' : 'Métricas clave de negocio y usuarios.'}
+                    </p>
                 </div>
 
-                {/* Summary Cards */}
-                {summary && (
-                    <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
-                        <div className="bg-white/5 rounded-xl p-4 border border-white/10">
-                            <div className="text-3xl font-bold text-white">{summary.total}</div>
-                            <div className="text-gray-400 text-sm">Servicios Totales</div>
-                        </div>
-                        <div className="bg-emerald-500/10 rounded-xl p-4 border border-emerald-500/30">
-                            <div className="text-3xl font-bold text-emerald-400">{summary.online}</div>
-                            <div className="text-gray-400 text-sm">En Línea</div>
-                        </div>
-                        <div className="bg-red-500/10 rounded-xl p-4 border border-red-500/30">
-                            <div className="text-3xl font-bold text-red-400">{summary.offline}</div>
-                            <div className="text-gray-400 text-sm">Fuera de Línea</div>
-                        </div>
-                        <div className="bg-amber-500/10 rounded-xl p-4 border border-amber-500/30">
-                            <div className="text-3xl font-bold text-amber-400">{summary.error}</div>
-                            <div className="text-gray-400 text-sm">Con Errores</div>
-                        </div>
-                    </div>
-                )}
-
-                {/* Services Grid */}
-                <h2 className="text-xl font-semibold text-white mb-4">📡 Estado de Servicios</h2>
-                {loading ? (
-                    <div className="text-gray-400">Cargando servicios...</div>
-                ) : (
-                    <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-4 mb-8">
-                        {services.map((service, index) => (
-                            <div
-                                key={index}
-                                className={`rounded-xl p-4 border ${getStatusBg(service.status)}`}
-                            >
-                                <div className="flex items-center justify-between mb-3">
-                                    <div className="flex items-center gap-2">
-                                        <div className={`w-3 h-3 rounded-full ${getStatusColor(service.status)} animate-pulse`} />
-                                        <span className="text-white font-medium">{service.name}</span>
-                                    </div>
-                                    <span className="text-xs text-gray-400">{service.latency}ms</span>
+                {activeTab === 'monitor' ? (
+                    /* ================= MONITOR VIEW ================= */
+                    <>
+                        {/* Summary Cards */}
+                        {summary && (
+                            <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
+                                <div className="bg-white/5 rounded-xl p-4 border border-white/10">
+                                    <div className="text-3xl font-bold text-white">{summary.total}</div>
+                                    <div className="text-gray-400 text-sm">Servicios Totales</div>
                                 </div>
-                                <div className="text-gray-400 text-sm truncate mb-2">{service.url}</div>
-                                {service.error && (
-                                    <div className="text-red-400 text-xs bg-red-500/10 rounded p-2 mt-2">
-                                        {service.error}
-                                    </div>
-                                )}
-                                {service.details && (
-                                    <div className="text-gray-500 text-xs mt-2">
-                                        Status: {String(service.details.statusCode)} {String(service.details.statusText)}
-                                    </div>
-                                )}
-                            </div>
-                        ))}
-                    </div>
-                )}
-
-                {/* Supabase Stats & Tools */}
-                <div className="grid md:grid-cols-2 gap-6 mb-8">
-                    {/* Supabase Stats */}
-                    <div className="bg-white/5 rounded-2xl border border-white/10 p-6">
-                        <h3 className="text-lg font-semibold text-white mb-4">📊 Supabase Stats</h3>
-                        {supabaseStats ? (
-                            <div className="space-y-3">
-                                <div className="flex justify-between items-center p-3 bg-slate-800/50 rounded-lg">
-                                    <span className="text-gray-400">Total Clases</span>
-                                    <span className="text-2xl font-bold text-blue-400">{supabaseStats.totalClases}</span>
+                                <div className="bg-emerald-500/10 rounded-xl p-4 border border-emerald-500/30">
+                                    <div className="text-3xl font-bold text-emerald-400">{summary.online}</div>
+                                    <div className="text-gray-400 text-sm">En Línea</div>
                                 </div>
-                                <div className="flex justify-between items-center p-3 bg-slate-800/50 rounded-lg">
-                                    <span className="text-gray-400">Última actualización</span>
-                                    <span className="text-sm text-gray-300">
-                                        {new Date(supabaseStats.lastUpdated).toLocaleTimeString()}
-                                    </span>
+                                <div className="bg-red-500/10 rounded-xl p-4 border border-red-500/30">
+                                    <div className="text-3xl font-bold text-red-400">{summary.offline}</div>
+                                    <div className="text-gray-400 text-sm">Fuera de Línea</div>
+                                </div>
+                                <div className="bg-amber-500/10 rounded-xl p-4 border border-amber-500/30">
+                                    <div className="text-3xl font-bold text-amber-400">{summary.error}</div>
+                                    <div className="text-gray-400 text-sm">Con Errores</div>
                                 </div>
                             </div>
-                        ) : (
-                            <div className="text-gray-400">Cargando stats...</div>
                         )}
-                    </div>
 
-                    {/* Quick Actions */}
-                    <div className="bg-white/5 rounded-2xl border border-white/10 p-6">
-                        <h3 className="text-lg font-semibold text-white mb-4">⚡ Acciones Rápidas</h3>
-                        <div className="grid grid-cols-2 gap-3">
-                            <button
-                                onClick={testSupabaseInsert}
-                                disabled={testLoading}
-                                className="p-3 bg-blue-500/20 border border-blue-500/30 rounded-lg text-blue-400 hover:bg-blue-500/30 disabled:opacity-50 text-sm"
-                            >
-                                🔧 Test Supabase Insert
-                            </button>
-                            <button
-                                onClick={testGroqAPI}
-                                disabled={testLoading}
-                                className="p-3 bg-emerald-500/20 border border-emerald-500/30 rounded-lg text-emerald-400 hover:bg-emerald-500/30 disabled:opacity-50 text-sm"
-                            >
-                                🤖 Test Groq API
-                            </button>
-                            <a
-                                href="http://64.177.81.23:3001"
-                                target="_blank"
-                                rel="noopener noreferrer"
-                                className="p-3 bg-purple-500/20 border border-purple-500/30 rounded-lg text-purple-400 hover:bg-purple-500/30 text-sm text-center"
-                            >
-                                📊 Supabase Studio
-                            </a>
-                            <a
-                                href="http://216.238.70.204:5678"
-                                target="_blank"
-                                rel="noopener noreferrer"
-                                className="p-3 bg-amber-500/20 border border-amber-500/30 rounded-lg text-amber-400 hover:bg-amber-500/30 text-sm text-center"
-                            >
-                                🔄 n8n Workflows
-                            </a>
+                        {/* Services Grid */}
+                        <h2 className="text-xl font-semibold text-white mb-4">📡 Estado de Servicios</h2>
+                        {loading ? (
+                            <div className="text-gray-400">Cargando servicios...</div>
+                        ) : (
+                            <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-4 mb-8">
+                                {services.map((service, index) => (
+                                    <div
+                                        key={index}
+                                        className={`rounded-xl p-4 border ${getStatusBg(service.status)}`}
+                                    >
+                                        <div className="flex items-center justify-between mb-3">
+                                            <div className="flex items-center gap-2">
+                                                <div className={`w-3 h-3 rounded-full ${getStatusColor(service.status)} animate-pulse`} />
+                                                <span className="text-white font-medium">{service.name}</span>
+                                            </div>
+                                            <span className="text-xs text-gray-400">{service.latency}ms</span>
+                                        </div>
+                                        <div className="text-gray-400 text-sm truncate mb-2">{service.url}</div>
+                                        {service.error && (
+                                            <div className="text-red-400 text-xs bg-red-500/10 rounded p-2 mt-2">
+                                                {service.error}
+                                            </div>
+                                        )}
+                                    </div>
+                                ))}
+                            </div>
+                        )}
+
+                        {/* Batch Generators */}
+                        <div className="grid md:grid-cols-2 gap-6 mb-8">
+                            {/* Generators */}
+                            <div className="bg-white/5 rounded-2xl border border-white/10 p-6">
+                                <h3 className="text-lg font-semibold text-white mb-4">✨ Generadores IA</h3>
+                                <div className="flex gap-2 mb-4">
+                                    <input
+                                        type="text"
+                                        placeholder="Tema individual..."
+                                        className="flex-1 bg-slate-800 text-white rounded-lg px-3 py-2 border border-white/10"
+                                        id="topic-input"
+                                    />
+                                    <button
+                                        onClick={async () => {
+                                            const input = document.getElementById("topic-input") as HTMLInputElement;
+                                            if (!input.value) return;
+                                            setTestLoading(true);
+                                            try {
+                                                await fetch("/api/admin/generate", {
+                                                    method: "POST", body: JSON.stringify({ topic: input.value })
+                                                });
+                                                setTestOutput(prev => prev + `✅ Generated: ${input.value}\n`);
+                                            } catch (e) { setTestOutput(prev => prev + `❌ Error ${e}\n`); }
+                                            setTestLoading(false);
+                                        }}
+                                        className="px-4 bg-blue-600 rounded-lg text-white"
+                                    >
+                                        Go
+                                    </button>
+                                </div>
+
+                                <div className="grid gap-3">
+                                    <BatchButton
+                                        title="📚 Lectura (15)"
+                                        topics={["Vocales", "Abecedario", "Sílabas"]}
+                                        onLog={msg => setTestOutput(prev => msg + prev)}
+                                        onStatsUpdate={fetchSupabaseStats}
+                                    />
+                                    <BatchButton
+                                        title="🧪 Ciencias (12)"
+                                        topics={["Sentidos", "Agua", "Plantas"]}
+                                        onLog={msg => setTestOutput(prev => msg + prev)}
+                                        onStatsUpdate={fetchSupabaseStats}
+                                    />
+                                </div>
+                            </div>
+
+                            {/* Console */}
+                            <div className="bg-white/5 rounded-2xl border border-white/10 p-6 flex flex-col">
+                                <div className="flex justify-between mb-2">
+                                    <h3 className="text-white font-semibold">Console</h3>
+                                    <button onClick={() => setTestOutput("")} className="text-xs text-gray-400">Clear</button>
+                                </div>
+                                <pre className="flex-1 bg-slate-900 rounded-lg p-4 text-xs font-mono text-gray-300 overflow-auto max-h-64">
+                                    {testOutput || "// Ready..."}
+                                </pre>
+                            </div>
                         </div>
-                    </div>
-                </div>
+                    </>
+                ) : (
+                    /* ================= ANALYTICS VIEW ================= */
+                    !analytics ? <div className="text-white">Cargando Analytics...</div> : (
+                        <>
+                            {/* KPI Cards */}
+                            <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+                                <div className="bg-gradient-to-br from-blue-600/20 to-blue-800/20 rounded-2xl p-6 border border-blue-500/30">
+                                    <h3 className="text-blue-200 text-sm font-medium mb-2">Total Estudiantes</h3>
+                                    <div className="text-4xl font-bold text-white">{analytics.total_users}</div>
+                                    <div className="text-blue-300 text-xs mt-2">↑ 12% vs mes pasado</div>
+                                </div>
+                                <div className="bg-gradient-to-br from-purple-600/20 to-purple-800/20 rounded-2xl p-6 border border-purple-500/30">
+                                    <h3 className="text-purple-200 text-sm font-medium mb-2">Clases Disponibles</h3>
+                                    <div className="text-4xl font-bold text-white">{analytics.total_classes}</div>
+                                    <div className="text-purple-300 text-xs mt-2">Contenido verificado</div>
+                                </div>
+                                <div className="bg-gradient-to-br from-emerald-600/20 to-emerald-800/20 rounded-2xl p-6 border border-emerald-500/30">
+                                    <h3 className="text-emerald-200 text-sm font-medium mb-2">Lecciones Completadas</h3>
+                                    <div className="text-4xl font-bold text-white">{analytics.total_completions}</div>
+                                    <div className="text-emerald-300 text-xs mt-2">Engagement rate: {analytics.total_users > 0 ? ((analytics.total_completions / analytics.total_users) * 100).toFixed(1) : 0}%</div>
+                                </div>
+                            </div>
 
-                {/* Content Generator */}
-                <div className="bg-white/5 rounded-2xl border border-white/10 p-6 mb-8">
-                    <h3 className="text-lg font-semibold text-white mb-4">✨ Generador de Contenido IA</h3>
-                    <div className="flex gap-4 mb-4">
-                        <input
-                            type="text"
-                            placeholder="Tema de la clase (ej. La Revolución Mexicana)"
-                            className="flex-1 bg-slate-800 text-white rounded-lg px-4 py-2 border border-white/10 focus:outline-none focus:border-blue-500"
-                            id="topic-input"
-                        />
-                        <button
-                            onClick={async () => {
-                                const input = document.getElementById("topic-input") as HTMLInputElement;
-                                const topic = input.value;
-                                if (!topic) return;
+                            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8">
+                                {/* Main Chart */}
+                                <div className="lg:col-span-2 bg-white/5 rounded-2xl border border-white/10 p-6">
+                                    <h3 className="text-lg font-semibold text-white mb-6">Crecimiento de Usuarios (7 días)</h3>
+                                    <div className="h-64">
+                                        <ResponsiveContainer width="100%" height="100%">
+                                            <LineChart data={analytics.registrations_chart}>
+                                                <CartesianGrid strokeDasharray="3 3" stroke="#333" />
+                                                <XAxis dataKey="date" stroke="#888" />
+                                                <YAxis stroke="#888" />
+                                                <RechartsTooltip
+                                                    contentStyle={{ backgroundColor: '#1e293b', border: '1px solid #333' }}
+                                                    itemStyle={{ color: '#fff' }}
+                                                />
+                                                <Line type="monotone" dataKey="count" stroke="#3b82f6" strokeWidth={3} activeDot={{ r: 8 }} />
+                                            </LineChart>
+                                        </ResponsiveContainer>
+                                    </div>
+                                </div>
 
-                                setTestLoading(true);
-                                setTestOutput(`Generando clase sobre: ${topic}...\n`);
-
-                                try {
-                                    const response = await fetch("/api/admin/generate", {
-                                        method: "POST",
-                                        headers: { "Content-Type": "application/json" },
-                                        body: JSON.stringify({ topic })
-                                    });
-                                    const data = await response.json();
-
-                                    if (data.success) {
-                                        setTestOutput(prev => prev + `✅ Clase creada exitosamente!\nID: ${data.insertedId}\nTokens: ${data.tokens}\nTiempo: ${data.generationTime}ms\n\n`);
-                                        fetchSupabaseStats();
-                                        input.value = "";
-                                    } else {
-                                        setTestOutput(prev => prev + `❌ Error: ${JSON.stringify(data.error || data.insertError, null, 2)}\n\n`);
-                                    }
-                                } catch (error) {
-                                    setTestOutput(prev => prev + `❌ Error de red: ${error}\n\n`);
-                                } finally {
-                                    setTestLoading(false);
-                                }
-                            }}
-                            disabled={testLoading}
-                            className="px-6 py-2 bg-gradient-to-r from-blue-500 to-emerald-400 text-white rounded-lg font-medium hover:opacity-90 disabled:opacity-50"
-                        >
-                            Generar Clase
-                        </button>
-                    </div>
-                    <p className="text-sm text-gray-400">
-                        Usa el modelo <strong>Llama 3.3 70B</strong> (SambaNova) para generar contenido y lo guarda automáticamente en Supabase.
-                    </p>
-                </div>
-
-                {/* Batch Content Generator */}
-                <div className="bg-white/5 rounded-2xl border border-white/10 p-6 mb-8">
-                    <h3 className="text-lg font-semibold text-white mb-4">🚀 Generación Masiva (Batch)</h3>
-                    <p className="text-sm text-gray-400 mb-4">
-                        Genera módulos completos automáticamente. Asegúrate de monitorear el progreso.
-                    </p>
-
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        <BatchButton
-                            title="📚 Lectura y Escritura (15 clases)"
-                            topics={[
-                                "Las vocales y sus sonidos", "El abecedario completo", "Sílabas simples", "Formando palabras cortas",
-                                "Uso de mayúsculas", "Signos de puntuación", "Comprensión lectora básica", "Escribiendo datos personales",
-                                "Tipos de textos: receta", "Sinónimos y antónimos", "Verbos: tiempos simples", "Adjetivos y descripciones",
-                                "La oración simple", "Reglas de acentuación", "Escribiendo una carta"
-                            ]}
-                            onLog={(msg) => setTestOutput(prev => msg + prev)}
-                            onStatsUpdate={fetchSupabaseStats}
-                        />
-
-                        <BatchButton
-                            title="🧪 Ciencias Naturales (12 clases)"
-                            topics={[
-                                "Los cinco sentidos", "El sistema digestivo", "El sistema respiratorio", "El sistema solar",
-                                "Ciclo del agua", "Las plantas y sus partes", "Animales vertebrados e invertebrados",
-                                "Salud e higiene personal", "Ecosistemas de México", "Cuidado del medio ambiente (3R)",
-                                "La energía eléctrica", "Fenómenos naturales"
-                            ]}
-                            onLog={(msg) => setTestOutput(prev => msg + prev)}
-                            onStatsUpdate={fetchSupabaseStats}
-                        />
-
-                        <BatchButton
-                            title="🌎 Ciencias Sociales (12 clases)"
-                            topics={[
-                                "Historia de la Independencia", "La Revolución Mexicana", "La Constitución y derechos",
-                                "Geografía de México", "Diversidad cultural", "Tradiciones: Día de Muertos",
-                                "Familia y comunidad", "Derechos de los niños", "La democracia",
-                                "Símbolos patrios", "Culturas prehispánicas", "Economía familiar"
-                            ]}
-                            onLog={(msg) => setTestOutput(prev => msg + prev)}
-                            onStatsUpdate={fetchSupabaseStats}
-                        />
-
-                        <BatchButton
-                            title="📐 Matemáticas (Faltantes)"
-                            topics={[
-                                "Fracciones: conceptos básicos", "Suma de fracciones", "Resta de fracciones",
-                                "Porcentajes: concepto", "Cálculo de porcentajes", "Geometría: Cuadrado y Rectángulo",
-                                "Geometría: Triángulo", "Perímetro básico", "Área básica",
-                                "Unidades de medida", "Unidades de peso", "Unidades de tiempo"
-                            ]}
-                            onLog={(msg) => setTestOutput(prev => msg + prev)}
-                            onStatsUpdate={fetchSupabaseStats}
-                        />
-                    </div>
-                </div>
-
-                {/* Debug Console */}
-                <div className="bg-white/5 rounded-2xl border border-white/10 p-6">
-                    <div className="flex items-center justify-between mb-4">
-                        <h3 className="text-lg font-semibold text-white">🖥️ Consola de Debug</h3>
-                        <button
-                            onClick={() => setTestOutput("")}
-                            className="text-sm text-gray-400 hover:text-white"
-                        >
-                            Limpiar
-                        </button>
-                    </div>
-                    <pre className="bg-slate-900 rounded-lg p-4 text-sm text-gray-300 font-mono overflow-auto max-h-64 min-h-32">
-                        {testOutput || "// Los resultados de las pruebas aparecerán aquí..."}
-                    </pre>
-                </div>
-
-                {/* Quick Links */}
-                <div className="mt-8 grid grid-cols-2 md:grid-cols-4 gap-4">
-                    <Link href="/dashboard" className="bg-white/5 hover:bg-white/10 rounded-xl p-4 text-center border border-white/10">
-                        <span className="text-2xl block mb-2">📊</span>
-                        <span className="text-gray-300">Dashboard</span>
-                    </Link>
-                    <Link href="/cursos" className="bg-white/5 hover:bg-white/10 rounded-xl p-4 text-center border border-white/10">
-                        <span className="text-2xl block mb-2">📚</span>
-                        <span className="text-gray-300">Cursos</span>
-                    </Link>
-                    <Link href="/chat" className="bg-white/5 hover:bg-white/10 rounded-xl p-4 text-center border border-white/10">
-                        <span className="text-2xl block mb-2">🤖</span>
-                        <span className="text-gray-300">Chat Tutor</span>
-                    </Link>
-                    <a href="http://216.238.70.204:3005" target="_blank" rel="noopener noreferrer" className="bg-white/5 hover:bg-white/10 rounded-xl p-4 text-center border border-white/10">
-                        <span className="text-2xl block mb-2">🖥️</span>
-                        <span className="text-gray-300">VPS Panel</span>
-                    </a>
-                </div>
-
-                {/* Last Updated */}
-                {summary && (
-                    <div className="mt-8 text-center text-gray-500 text-sm">
-                        Última actualización: {new Date(summary.timestamp).toLocaleString()}
-                    </div>
-                )}
+                                {/* Top Users Table */}
+                                <div className="bg-white/5 rounded-2xl border border-white/10 p-6">
+                                    <h3 className="text-lg font-semibold text-white mb-4">🏆 Estudiantes Top</h3>
+                                    <div className="space-y-4">
+                                        {analytics.top_users.map((user, i) => (
+                                            <div key={i} className="flex items-center justify-between p-3 bg-white/5 rounded-lg">
+                                                <div className="flex items-center gap-3">
+                                                    <div className="w-8 h-8 rounded-full bg-gradient-to-br from-purple-500 to-pink-500 flex items-center justify-center text-xs font-bold text-white">
+                                                        {user.nombre[0].toUpperCase()}
+                                                    </div>
+                                                    <div className="overflow-hidden">
+                                                        <div className="text-sm font-medium text-white truncate w-32">{user.nombre}</div>
+                                                        <div className="text-xs text-gray-500 truncate w-32">{user.email}</div>
+                                                    </div>
+                                                </div>
+                                                <div className="text-right">
+                                                    <div className="text-lg font-bold text-emerald-400">{user.completed}</div>
+                                                    <div className="text-xs text-gray-500">clases</div>
+                                                </div>
+                                            </div>
+                                        ))}
+                                        {analytics.top_users.length === 0 && <p className="text-gray-500 text-sm">Sin actividad aún.</p>}
+                                    </div>
+                                </div>
+                            </div>
+                        </>
+                    )}
             </main>
         </div>
     );

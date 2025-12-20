@@ -125,130 +125,112 @@ export async function POST(request: NextRequest) {
     try {
         const { action, service, data } = await request.json();
 
-        switch (action) {
-            case "test_supabase_insert":
-                return await testSupabaseInsert(data);
-            case "test_groq":
-                return await testGroqAPI(data);
-            case "get_supabase_stats":
-                return await getSupabaseStats();
-            default:
-                return NextResponse.json({ error: "Unknown action" }, { status: 400 });
+        async function testSupabaseInsert(data: { tema: string; contenido: string }) {
+            const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || "http://64.177.81.23:8000";
+            const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY ||
+                "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyAgCiAgICAicm9sZSI6ICJzZXJ2aWNlX3JvbGUiLAogICAgImlzcyI6ICJzdXBhYmFzZS1kZW1vIiwKICAgICJpYXQiOiAxNjQxNzY5MjAwLAogICAgImV4cCI6IDE3OTk1MzU2MDAKfQ.DaYlNEoUrrEn2Ig7tqibS-PHK5vgusbcbo7X36XVt4Q";
+
+            try {
+                const response = await fetch(`${supabaseUrl}/rest/v1/clases_generadas`, {
+                    method: "POST",
+                    headers: {
+                        "apikey": supabaseKey,
+                        "Authorization": `Bearer ${supabaseKey}`,
+                        "Content-Type": "application/json",
+                        "Prefer": "return=representation"
+                    },
+                    body: JSON.stringify({
+                        tema: data.tema || "Test Insert",
+                        contenido: data.contenido || "This is a test insert from Admin Panel",
+                        modelo: "Admin Test",
+                        tokens_usados: 0
+                    })
+                });
+
+                const result = await response.json();
+
+                return NextResponse.json({
+                    success: response.ok,
+                    statusCode: response.status,
+                    result
+                });
+            } catch (error) {
+                return NextResponse.json({
+                    success: false,
+                    error: error instanceof Error ? error.message : "Unknown error"
+                });
+            }
         }
-    } catch (error) {
-        return NextResponse.json({
-            success: false,
-            error: error instanceof Error ? error.message : "Unknown error"
-        }, { status: 500 });
-    }
-}
 
-async function testSupabaseInsert(data: { tema: string; contenido: string }) {
-    const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || "http://64.177.81.23:8000";
-    const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY ||
-        "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyAgCiAgICAicm9sZSI6ICJzZXJ2aWNlX3JvbGUiLAogICAgImlzcyI6ICJzdXBhYmFzZS1kZW1vIiwKICAgICJpYXQiOiAxNjQxNzY5MjAwLAogICAgImV4cCI6IDE3OTk1MzU2MDAKfQ.DaYlNEoUrrEn2Ig7tqibS-PHK5vgusbcbo7X36XVt4Q";
+        async function testGroqAPI(data: { message: string }) {
+            const groqKey = process.env.GROQ_API_KEY;
 
-    try {
-        const response = await fetch(`${supabaseUrl}/rest/v1/clases_generadas`, {
-            method: "POST",
-            headers: {
-                "apikey": supabaseKey,
-                "Authorization": `Bearer ${supabaseKey}`,
-                "Content-Type": "application/json",
-                "Prefer": "return=representation"
-            },
-            body: JSON.stringify({
-                tema: data.tema || "Test Insert",
-                contenido: data.contenido || "This is a test insert from Admin Panel",
-                modelo: "Admin Test",
-                tokens_usados: 0
-            })
-        });
-
-        const result = await response.json();
-
-        return NextResponse.json({
-            success: response.ok,
-            statusCode: response.status,
-            result
-        });
-    } catch (error) {
-        return NextResponse.json({
-            success: false,
-            error: error instanceof Error ? error.message : "Unknown error"
-        });
-    }
-}
-
-async function testGroqAPI(data: { message: string }) {
-    const groqKey = process.env.GROQ_API_KEY;
-
-    if (!groqKey) {
-        return NextResponse.json({
-            success: false,
-            error: "GROQ_API_KEY not configured"
-        });
-    }
-
-    try {
-        const startTime = Date.now();
-        const response = await fetch("https://api.groq.com/openai/v1/chat/completions", {
-            method: "POST",
-            headers: {
-                "Authorization": `Bearer ${groqKey}`,
-                "Content-Type": "application/json"
-            },
-            body: JSON.stringify({
-                model: "llama-3.3-70b-versatile",
-                messages: [{ role: "user", content: data.message || "Hello" }],
-                max_tokens: 50
-            })
-        });
-
-        const result = await response.json();
-        const latency = Date.now() - startTime;
-
-        return NextResponse.json({
-            success: response.ok,
-            latency,
-            result
-        });
-    } catch (error) {
-        return NextResponse.json({
-            success: false,
-            error: error instanceof Error ? error.message : "Unknown error"
-        });
-    }
-}
-
-async function getSupabaseStats() {
-    const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || "http://64.177.81.23:8000";
-    const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY ||
-        "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyAgCiAgICAicm9sZSI6ICJzZXJ2aWNlX3JvbGUiLAogICAgImlzcyI6ICJzdXBhYmFzZS1kZW1vIiwKICAgICJpYXQiOiAxNjQxNzY5MjAwLAogICAgImV4cCI6IDE3OTk1MzU2MDAKfQ.DaYlNEoUrrEn2Ig7tqibS-PHK5vgusbcbo7X36XVt4Q";
-
-    try {
-        const response = await fetch(`${supabaseUrl}/rest/v1/clases_generadas?select=count`, {
-            method: "GET",
-            headers: {
-                "apikey": supabaseKey,
-                "Authorization": `Bearer ${supabaseKey}`,
-                "Prefer": "count=exact"
+            if (!groqKey) {
+                return NextResponse.json({
+                    success: false,
+                    error: "GROQ_API_KEY not configured"
+                });
             }
-        });
 
-        const count = response.headers.get("content-range")?.split("/")[1] || "0";
+            try {
+                const startTime = Date.now();
+                const response = await fetch("https://api.groq.com/openai/v1/chat/completions", {
+                    method: "POST",
+                    headers: {
+                        "Authorization": `Bearer ${groqKey}`,
+                        "Content-Type": "application/json"
+                    },
+                    body: JSON.stringify({
+                        model: "llama-3.3-70b-versatile",
+                        messages: [{ role: "user", content: data.message || "Hello" }],
+                        max_tokens: 50
+                    })
+                });
 
-        return NextResponse.json({
-            success: true,
-            stats: {
-                totalClases: parseInt(count),
-                lastUpdated: new Date().toISOString()
+                const result = await response.json();
+                const latency = Date.now() - startTime;
+
+                return NextResponse.json({
+                    success: response.ok,
+                    latency,
+                    result
+                });
+            } catch (error) {
+                return NextResponse.json({
+                    success: false,
+                    error: error instanceof Error ? error.message : "Unknown error"
+                });
             }
-        });
-    } catch (error) {
-        return NextResponse.json({
-            success: false,
-            error: error instanceof Error ? error.message : "Unknown error"
-        });
-    }
-}
+        }
+
+        async function getSupabaseStats() {
+            const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || "http://64.177.81.23:8000";
+            const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY ||
+                "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyAgCiAgICAicm9sZSI6ICJzZXJ2aWNlX3JvbGUiLAogICAgImlzcyI6ICJzdXBhYmFzZS1kZW1vIiwKICAgICJpYXQiOiAxNjQxNzY5MjAwLAogICAgImV4cCI6IDE3OTk1MzU2MDAKfQ.DaYlNEoUrrEn2Ig7tqibS-PHK5vgusbcbo7X36XVt4Q";
+
+            try {
+                const response = await fetch(`${supabaseUrl}/rest/v1/clases_generadas?select=count`, {
+                    method: "GET",
+                    headers: {
+                        "apikey": supabaseKey,
+                        "Authorization": `Bearer ${supabaseKey}`,
+                        "Prefer": "count=exact"
+                    }
+                });
+
+                const count = response.headers.get("content-range")?.split("/")[1] || "0";
+
+                return NextResponse.json({
+                    success: true,
+                    stats: {
+                        totalClases: parseInt(count),
+                        lastUpdated: new Date().toISOString()
+                    }
+                });
+            } catch (error) {
+                return NextResponse.json({
+                    success: false,
+                    error: error instanceof Error ? error.message : "Unknown error"
+                });
+            }
+        }
