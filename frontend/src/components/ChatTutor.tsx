@@ -2,10 +2,12 @@
 
 import { useState, useRef, useEffect } from "react";
 import ReactMarkdown from "react-markdown";
+import { Mic, Image as ImageIcon, X, Send, Loader2 } from "lucide-react";
 
 interface Message {
     role: "user" | "assistant";
     content: string;
+    image?: string;
 }
 
 interface ChatTutorProps {
@@ -23,7 +25,10 @@ export default function ChatTutor({ context, title, className = "" }: ChatTutorP
     ]);
     const [input, setInput] = useState("");
     const [isLoading, setIsLoading] = useState(false);
+    const [listening, setListening] = useState(false);
+    const [selectedImage, setSelectedImage] = useState<string | null>(null);
     const messagesEndRef = useRef<HTMLDivElement>(null);
+    const fileInputRef = useRef<HTMLInputElement>(null);
 
     const scrollToBottom = () => {
         messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -33,23 +38,65 @@ export default function ChatTutor({ context, title, className = "" }: ChatTutorP
         scrollToBottom();
     }, [messages]);
 
+    const handleVoice = () => {
+        if (!('webkitSpeechRecognition' in window)) {
+            alert("Tu navegador no soporta reconocimiento de voz. Usa Chrome.");
+            return;
+        }
+
+        if (listening) {
+            // Stop listening logic if needed (usually auto-stops)
+            setListening(false);
+            return;
+        }
+
+        const recognition = new (window as any).webkitSpeechRecognition();
+        recognition.lang = 'es-MX';
+        recognition.continuous = false;
+        recognition.interimResults = false;
+
+        recognition.onstart = () => setListening(true);
+        recognition.onend = () => setListening(false);
+        recognition.onresult = (event: any) => {
+            const transcript = event.results[0][0].transcript;
+            setInput(prev => prev + " " + transcript);
+        };
+
+        recognition.start();
+    };
+
+    const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+        const file = e.target.files?.[0];
+        if (file) {
+            const reader = new FileReader();
+            reader.readAsDataURL(file);
+            reader.onload = () => {
+                setSelectedImage(reader.result as string);
+            };
+        }
+    };
+
     const sendMessage = async () => {
-        if (!input.trim() || isLoading) return;
+        if ((!input.trim() && !selectedImage) || isLoading) return;
 
         const userMessage = input.trim();
+        const userImage = selectedImage;
+
         setInput("");
-        setMessages(prev => [...prev, { role: "user", content: userMessage }]);
+        setSelectedImage(null);
+
+        setMessages(prev => [...prev, { role: "user", content: userMessage, image: userImage || undefined }]);
         setIsLoading(true);
 
         try {
-            const response = await fetch("/api/chat", {
+            const response = await fetch("http://localhost:3002/api/tutor/chat", { // Direct to API for demo (or via Next proxy)
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({
                     message: userMessage,
-                    // Pass the specific class context to the AI
+                    image_url: userImage, // Pass base64 image
                     lesson_context: `Clase: ${title}. Contenido breve: ${context.substring(0, 1000)}...`,
-                    history: messages.slice(-6)
+                    history: messages.map(m => ({ role: m.role, content: m.content })).slice(-6)
                 })
             });
 
@@ -91,9 +138,12 @@ export default function ChatTutor({ context, title, className = "" }: ChatTutorP
                 {messages.map((msg, i) => (
                     <div key={i} className={`flex ${msg.role === "user" ? "justify-end" : "justify-start"}`}>
                         <div className={`max-w-[85%] px-4 py-3 rounded-2xl text-sm ${msg.role === "user"
-                                ? "bg-blue-600 text-white rounded-br-sm shadow-lg shadow-blue-500/10"
-                                : "bg-slate-700 text-slate-100 rounded-bl-sm border border-white/5"
+                            ? "bg-blue-600 text-white rounded-br-sm shadow-lg shadow-blue-500/10"
+                            : "bg-slate-700 text-slate-100 rounded-bl-sm border border-white/5"
                             }`}>
+                            {msg.image && (
+                                <img src={msg.image} alt="User upload" className="max-w-full rounded-lg mb-2" />
+                            )}
                             <ReactMarkdown className="prose prose-invert prose-sm max-w-none">
                                 {msg.content}
                             </ReactMarkdown>
@@ -117,23 +167,62 @@ export default function ChatTutor({ context, title, className = "" }: ChatTutorP
 
             {/* Input Area */}
             <div className="p-4 bg-slate-900/30 border-t border-white/10">
-                <div className="flex gap-2">
+                {selectedImage && (
+                    <div className="mb-2 relative inline-block">
+                        <img src={selectedImage} alt="Preview" className="h-20 rounded-lg border border-white/20" />
+                        <button
+                            onClick={() => setSelectedImage(null)}
+                            className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full p-1 shadow-lg hover:bg-red-600"
+                        >
+                            <X size={12} />
+                        </button>
+                    </div>
+                )}
+
+                <div className="flex gap-2 items-end">
+                    {/* Hidden File Input */}
+                    <input
+                        type="file"
+                        ref={fileInputRef}
+                        onChange={handleImageUpload}
+                        accept="image/*"
+                        className="hidden"
+                    />
+
+                    <button
+                        onClick={() => fileInputRef.current?.click()}
+                        className="p-3 bg-slate-800 hover:bg-slate-700 text-slate-400 hover:text-white rounded-xl transition-colors border border-white/5"
+                        title="Subir imagen"
+                    >
+                        <ImageIcon size={20} />
+                    </button>
+
+                    <button
+                        onClick={handleVoice}
+                        className={`p-3 rounded-xl transition-all border border-white/5 ${listening
+                                ? "bg-red-500/20 text-red-400 border-red-500/50 animate-pulse"
+                                : "bg-slate-800 hover:bg-slate-700 text-slate-400 hover:text-white"
+                            }`}
+                        title="Dictar por voz"
+                    >
+                        <Mic size={20} />
+                    </button>
+
                     <input
                         type="text"
                         value={input}
                         onChange={(e) => setInput(e.target.value)}
                         onKeyDown={(e) => e.key === "Enter" && sendMessage()}
-                        placeholder="Pregunta algo sobre la clase..."
+                        placeholder={listening ? "Escuchando..." : "Escribe o usa el micrófono..."}
                         className="flex-1 bg-slate-900 border border-white/10 rounded-xl px-4 py-3 text-sm text-white focus:outline-none focus:ring-2 focus:ring-blue-500/50 transition-all placeholder:text-gray-500"
                     />
+
                     <button
                         onClick={sendMessage}
-                        disabled={!input.trim() || isLoading}
-                        className="bg-blue-600 hover:bg-blue-500 text-white p-3 rounded-xl transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                        disabled={(!input.trim() && !selectedImage) || isLoading}
+                        className="bg-blue-600 hover:bg-blue-500 text-white p-3 rounded-xl transition-colors disabled:opacity-50 disabled:cursor-not-allowed shadow-lg shadow-blue-900/20"
                     >
-                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" className="w-5 h-5">
-                            <path d="M3.478 2.404a.75.75 0 0 0-.926.941l2.432 7.905H13.5a.75.75 0 0 1 0 1.5H4.984l-2.432 7.905a.75.75 0 0 0 .926.94 60.519 60.519 0 0 0 18.445-8.986.75.75 0 0 0 0-1.218A60.517 60.517 0 0 0 3.478 2.404Z" />
-                        </svg>
+                        {isLoading ? <Loader2 size={20} className="animate-spin" /> : <Send size={20} />}
                     </button>
                 </div>
             </div>

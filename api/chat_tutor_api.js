@@ -41,10 +41,10 @@ Temas que puedes enseñar:
 /**
  * Call Groq API
  */
-async function callGroq(messages) {
+async function callGroq(messages, model = GROQ_MODEL) {
     return new Promise((resolve, reject) => {
         const data = JSON.stringify({
-            model: GROQ_MODEL,
+            model: model,
             messages: messages,
             temperature: 0.7,
             max_tokens: 500,
@@ -130,13 +130,17 @@ async function handleRequest(req, res) {
     }
 
     try {
-        const { message, lesson_context, history } = JSON.parse(body);
+        const { message, lesson_context, history, image_url } = JSON.parse(body);
 
-        if (!message) {
+        if (!message && !image_url) {
             res.writeHead(400, { 'Content-Type': 'application/json' });
-            res.end(JSON.stringify({ error: 'Missing "message" field' }));
+            res.end(JSON.stringify({ error: 'Missing "message" or "image_url" field' }));
             return;
         }
+
+        // Determine Model
+        // Use Vision model if image is present, otherwise standard fast model
+        const currentModel = image_url ? 'llama-3.2-90b-vision-preview' : GROQ_MODEL;
 
         // Build messages array
         const messages = [
@@ -151,16 +155,28 @@ async function handleRequest(req, res) {
             });
         }
 
-        // Add conversation history if provided
+        // Add conversation history if provided (only for text context, vision usually serves as single turn or needs complex handling)
         if (history && Array.isArray(history)) {
-            messages.push(...history.slice(-6)); // Last 6 messages for context
+            // Filter out complex content from history if needed, for now assuming text history
+            messages.push(...history.slice(-6));
         }
 
-        // Add current message
-        messages.push({ role: 'user', content: message });
+        // Add current message with Image if present
+        if (image_url) {
+            messages.push({
+                role: 'user',
+                content: [
+                    { type: "text", text: message || "Analiza esta imagen y ayuda al estudiante:" },
+                    { type: "image_url", image_url: { url: image_url } }
+                ]
+            });
+        } else {
+            messages.push({ role: 'user', content: message });
+        }
 
-        // Call Groq
-        const response = await callGroq(messages);
+        // Call Groq (Modified call to support dynamic model)
+        // We need to modify callGroq to accept model
+        const response = await callGroq(messages, currentModel);
 
         res.writeHead(200, { 'Content-Type': 'application/json' });
         res.end(JSON.stringify({
