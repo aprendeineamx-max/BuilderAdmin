@@ -9,7 +9,7 @@ const inter = Inter({ subsets: ["latin"] });
 
 export const metadata: Metadata = {
   title: "INEA.mx - Educación para Adultos",
-  },
+  description: "Plataforma educativa para adultos en México.",
   manifest: "/manifest.json",
   themeColor: "#0f172a",
 };
@@ -26,7 +26,9 @@ export default function RootLayout({
         <link rel="icon" href="/favicon.ico" sizes="any" />
       </head>
       <body className={`${ inter.variable } antialiased bg - slate - 900`}>
-        {children}
+        <AuthProvider>
+            {children}
+        </AuthProvider>
       </body>
     </html>
   );

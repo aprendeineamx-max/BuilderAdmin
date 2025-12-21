@@ -59,19 +59,19 @@ export default function OrgDashboardPage({ params }: { params: { slug: string } 
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
                 <StatCard
                     title="Total Colaboradores"
-                    value={stats.total_members}
-                    sub={`${stats.license_limit - stats.total_members} licencias disponibles`}
+                    value={stats?.total_members || 0}
+                    sub={`${(stats?.license_limit || 0) - (stats?.total_members || 0)} licencias disponibles`}
                     icon={<Users className="text-blue-400" />}
                 />
                 <StatCard
                     title="Estudiantes Activos"
-                    value={stats.active_students}
+                    value={stats?.active_students || 0}
                     sub="En los últimos 30 días"
                     icon={<TrendingUp className="text-emerald-400" />}
                 />
                 <StatCard
                     title="Promedio Avance"
-                    value={stats.average_progress}
+                    value={stats?.average_progress || 0}
                     sub="Lecciones por usuario"
                     icon={<BookOpen className="text-amber-400" />}
                 />
