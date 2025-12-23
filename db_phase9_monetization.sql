@@ -13,7 +13,7 @@ CREATE TABLE IF NOT EXISTS public.plans (
 -- User Subscriptions
 CREATE TABLE IF NOT EXISTS public.subscriptions (
     id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
-    user_id UUID REFERENCES public.profiles(id) NOT NULL,
+    user_id UUID REFERENCES public.usuarios(id) NOT NULL,
     plan_id TEXT REFERENCES public.plans(id) NOT NULL,
     status TEXT NOT NULL, -- 'active', 'canceled', 'past_due'
     provider TEXT NOT NULL, -- 'stripe', 'mercadopago', 'mock'
@@ -27,7 +27,7 @@ CREATE TABLE IF NOT EXISTS public.subscriptions (
 -- Payment History
 CREATE TABLE IF NOT EXISTS public.payments (
     id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
-    user_id UUID REFERENCES public.profiles(id) NOT NULL,
+    user_id UUID REFERENCES public.usuarios(id) NOT NULL,
     amount numeric NOT NULL,
     currency TEXT NOT NULL,
     status TEXT NOT NULL, -- 'succeeded', 'failed'

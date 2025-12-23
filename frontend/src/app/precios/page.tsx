@@ -34,24 +34,28 @@ export default function PricingPage() {
             return;
         }
 
-        if (plan.price === 0) {
-            alert("¡Ya tienes el Plan Gratuito activo!");
-            return;
-        }
+        setLoading(true);
 
-        // Mock Checkout Flow
-        const confirm = window.confirm(`¿Confirmar suscripción a ${plan.name} por $${plan.price} MXN? (Modo Simulación)`);
-        if (confirm) {
-            // Visualize processing
-            alert("Procesando pago con Stripe 'Test Mode'...");
+        try {
+            const response = await fetch('/api/stripe/checkout', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    priceId: plan.price === 199 ? 'price_monthly_id' : 'price_yearly_id', // Needs Env Var or DB lookup
+                    userId: user.id,
+                    email: user.email
+                })
+            });
 
-            // In real world: Call API to create Stripe Checkout Session
-            // await supabase.from('subscriptions').insert(...)
+            if (!response.ok) throw new Error("Error creating session");
 
-            setTimeout(() => {
-                alert("¡Suscripción Exitosa! Bienvenido a PRO.");
-                router.push('/dashboard');
-            }, 1000);
+            const { url } = await response.json();
+            window.location.href = url; // Redirect to Stripe
+        } catch (error) {
+            alert("Error al iniciar pago. Intenta de nuevo.");
+            console.error(error);
+        } finally {
+            setLoading(false);
         }
     };
 
