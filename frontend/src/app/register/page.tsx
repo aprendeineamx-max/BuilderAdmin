@@ -35,24 +35,53 @@ export default function RegisterPage() {
         setLoading(true);
 
         try {
-            const { error } = await supabase.auth.signUp({
+            const { data, error: signUpError } = await supabase.auth.signUp({
                 email: formData.email,
                 password: formData.password,
                 options: {
                     data: {
-                        nombre: `${formData.nombre} ${formData.apellido}`,
+                        full_name: `${formData.nombre} ${formData.apellido}`,
                         nivel: formData.nivel
-                    }
+                    },
+                    emailRedirectTo: `${window.location.origin}/auth/callback`
                 }
             });
 
-            if (error) {
-                setError(error.message);
-            } else {
+            if (signUpError) {
+                // Handle specific Supabase errors
+                if (signUpError.message.includes('User already registered')) {
+                    setError("Este correo ya está registrado. Intenta iniciar sesión.");
+                } else if (signUpError.message.includes('Invalid email')) {
+                    setError("Correo electrónico inválido.");
+                } else if (signUpError.message.includes('Password')) {
+                    setError("La contraseña debe tener al menos 6 caracteres.");
+                } else {
+                    setError(signUpError.message || "Error al crear la cuenta.");
+                }
+                return;
+            }
+
+            // Check if email confirmation is required
+            if (data.user && !data.session) {
+                setError("Revisa tu correo para confirmar tu cuenta antes de iniciar sesión.");
+                // Optionally redirect to a "check your email" page
+                setTimeout(() => router.push("/login?verify=true"), 3000);
+            } else if (data.session) {
+                // User is automatically logged in
                 router.push("/dashboard?welcome=true");
             }
-        } catch {
-            setError("Error al crear la cuenta. Intenta de nuevo.");
+
+        } catch (err) {
+            // Handle unexpected errors (network, parsing, etc.)
+            console.error("Registration error:", err);
+
+            if (err instanceof SyntaxError) {
+                setError("Error de conexión con el servidor. Por favor recarga la página.");
+            } else if (err instanceof TypeError && err.message.includes('Failed to fetch')) {
+                setError("No se pudo conectar al servidor. Verifica tu conexión a internet.");
+            } else {
+                setError("Error inesperado. Intenta de nuevo más tarde.");
+            }
         } finally {
             setLoading(false);
         }
