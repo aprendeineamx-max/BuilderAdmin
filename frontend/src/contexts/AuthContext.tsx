@@ -24,51 +24,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         // Get initial session
         supabase.auth.getSession().then(({ data: { session } }) => {
             setSession(session);
-            if (!session?.user) {
-                console.warn("⚠️ AUTH DISABLED: Using Mock User");
-                setUser({
-                    id: 'mock-user-id',
-                    email: 'mock@inea.mx',
-                    user_metadata: {
-                        name: 'Estudiante Demo',
-                        full_name: 'Estudiante Demo',
-                        avatar_url: 'https://ui-avatars.com/api/?name=Demo'
-                    }
-                } as User);
-            } else {
-                setUser(session.user);
-            }
-            setLoading(false);
-        }).catch(err => {
-            console.error("Auth Session Error (Ignored):", err);
-            // Fallback to mock user even on error
-            setUser({
-                id: 'mock-user-id',
-                email: 'mock@inea.mx',
-                user_metadata: { name: 'Fallback User' }
-            } as User);
+            setUser(session?.user ?? null);
             setLoading(false);
         });
 
         // Listen for auth changes
         const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
             setSession(session);
-            // 🔓 MOCK USER INJECTION
-            if (!session?.user) {
-                console.warn("⚠️ AUTH IS DISABLED: Using Mock User (AuthStateChange)");
-                const mockUser: any = {
-                    id: 'mock-user-id',
-                    email: 'mock@inea.mx',
-                    user_metadata: {
-                        name: 'Estudiante Demo',
-                        full_name: 'Estudiante Demo',
-                        avatar_url: 'https://ui-avatars.com/api/?name=Demo'
-                    }
-                };
-                setUser(mockUser);
-            } else {
-                setUser(session.user);
-            }
+            setUser(session?.user ?? null);
             setLoading(false);
         });
 
