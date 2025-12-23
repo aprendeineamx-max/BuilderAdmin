@@ -1,7 +1,6 @@
 import { createClient } from "@supabase/supabase-js";
 import { Metadata } from "next";
 import Link from "next/link";
-import { Download } from "lucide-react";
 import BlockchainVerifier from "@/components/BlockchainVerifier";
 import PrintButton from "@/components/PrintButton";
 
