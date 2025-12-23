@@ -1,145 +1,66 @@
 "use client";
 
-import { useParams } from 'next/navigation';
-import Navbar from '@/components/Navbar';
-import Footer from '@/components/Footer';
-import Link from 'next/link';
-import { useState } from 'react';
+import { useEffect, useState } from "react";
+import Navbar from "@/components/Navbar";
+import Footer from "@/components/Footer";
+import LearningPathMap from "@/components/LearningPathMap";
+import { supabase } from "@/lib/supabase";
 
-const MOCK_RUTA = {
-    name: "Ruta de Fundamentos de Aritmética",
-    description: "La base de todas las matemáticas. Aprende a operar números con confianza.",
-    progress: 15,
-    courses: [
-        {
-            id: 1,
-            title: "Curso Básico de Números Naturales",
-            status: "completed",
-            classes_count: 5,
-            image: "https://images.unsplash.com/photo-1635070041078-e363dbe005cb?w=800&q=80"
-        },
-        {
-            id: 2,
-            title: "Curso de Suma y Resta",
-            status: "in_progress",
-            classes_count: 8,
-            image: "https://images.unsplash.com/photo-1596495578065-6e0763fa1178?w=800&q=80"
-        },
-        {
-            id: 3,
-            title: "Curso de Multiplicación",
-            status: "locked",
-            classes_count: 10,
-            image: "https://images.unsplash.com/photo-1518133910546-b6c2fb7d79e3?w=800&q=80"
-        },
-        {
-            id: 4,
-            title: "Curso de División",
-            status: "locked",
-            classes_count: 12,
-            image: "https://images.unsplash.com/photo-1509228468518-180dd4864904?w=800&q=80"
-        }
-    ]
-};
+export default function RutaPage({ params }: { params: { slug: string } }) {
+    const [path, setPath] = useState<any>(null);
+    const [nodes, setNodes] = useState<any[]>([]);
+    const [loading, setLoading] = useState(true);
 
-export default function RutaPage() {
-    const { slug } = useParams();
-    const ruta = MOCK_RUTA; // In real app: fetch from Supabase
+    useEffect(() => {
+        loadPath();
+    }, []);
 
-    // Badge Colors based on status
-    const getStatusBadge = (status: string) => {
-        switch (status) {
-            case 'completed': return <span className="bg-green-500 text-black text-xs font-bold px-2 py-1 rounded">COMPLETADO</span>;
-            case 'in_progress': return <span className="bg-blue-500 text-white text-xs font-bold px-2 py-1 rounded">EN PROGRESO</span>;
-            default: return <span className="bg-gray-800 text-gray-500 text-xs font-bold px-2 py-1 rounded">BLOQUEADO</span>;
-        }
+    const loadPath = async () => {
+        // FOR DISPLAY DEMO: Force Mock Data immediately to avoid DB Latency/Empty issues
+        // We will uncomment the DB logic once Phase 13 is fully integrated with Admin Panel
+        setTimeout(() => {
+            setPath({
+                title: 'Primaria Express',
+                description: 'Ruta certificada por INEA para terminar tu primaria.',
+            });
+            setNodes([
+                { id: '1', title: 'Fundamentos de Lectura', description: 'Aprende las vocales y consonantes básicas.', step_order: 1, node_type: 'course', is_completed: true, is_locked: false, curso_id: 110 },
+                { id: '2', title: 'Matemáticas Básicas', description: 'Sumas y restas con objetos cotidianos.', step_order: 2, node_type: 'course', is_completed: true, is_locked: false, curso_id: 104 },
+                { id: '3', title: 'Historia de México I', description: 'Nuestros orígenes prehispánicos.', step_order: 3, node_type: 'course', is_completed: false, is_locked: false, curso_id: 108 },
+                { id: '4', title: 'Ciencias Naturales', description: 'El cuerpo humano y la salud.', step_order: 4, node_type: 'course', is_completed: false, is_locked: true, curso_id: 112 },
+                { id: '5', title: 'Examen Parcial', description: 'Demuestra lo que has aprendido.', step_order: 5, node_type: 'quiz', is_completed: false, is_locked: true },
+                { id: '6', title: 'Civismo y Ética', description: 'Valores para la vida en comunidad.', step_order: 6, node_type: 'course', is_completed: false, is_locked: true, curso_id: 115 },
+                { id: '7', title: 'Graduación', description: 'Obtén tu certificado oficial.', step_order: 7, node_type: 'milestone', is_completed: false, is_locked: true },
+            ]);
+            setLoading(false);
+        }, 500);
+
+        /* 
+        try {
+            const { data: pathData } = await supabase
+                .from('learning_paths')
+                .select('*')
+                .eq('slug', 'primaria-express')
+                .single();
+
+            if (pathData) {
+                setPath(pathData);
+                // ... fetch nodes ...
+            }
+        } catch (e) { console.error(e); } 
+        */
     };
 
     return (
-        <div className="min-h-screen bg-[#0a0a0a] text-white">
+        <div className="min-h-screen bg-slate-900 text-white flex flex-col">
             <Navbar />
-
-            {/* Path Header */}
-            <div className="pt-32 pb-16 bg-gradient-to-r from-blue-900/30 to-purple-900/30 border-b border-white/5">
-                <div className="max-w-4xl mx-auto px-4">
-                    <div className="flex flex-col md:flex-row gap-8 items-center">
-                        <div className="w-24 h-24 bg-white/10 rounded-full flex items-center justify-center text-4xl shadow-2xl ring-4 ring-white/5">
-                            🛣️
-                        </div>
-                        <div className="flex-1 text-center md:text-left">
-                            <h1 className="text-3xl md:text-5xl font-bold mb-4">{ruta.name}</h1>
-                            <p className="text-xl text-gray-300 mb-6">{ruta.description}</p>
-
-                            {/* Global Progress */}
-                            <div className="flex items-center gap-4">
-                                <div className="flex-1 max-w-sm h-3 bg-slate-800 rounded-full overflow-hidden">
-                                    <div className="h-full bg-green-500" style={{ width: `${ruta.progress}%` }} />
-                                </div>
-                                <span className="font-mono text-green-400">{ruta.progress}%</span>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-
-            {/* Timeline */}
-            <main className="max-w-3xl mx-auto px-4 py-16 relative">
-                {/* Vertical Line */}
-                <div className="absolute left-8 md:left-1/2 top-20 bottom-20 w-1 bg-white/10 -translate-x-1/2 hidden md:block" />
-
-                <div className="space-y-12">
-                    {ruta.courses.map((curso, index) => (
-                        <div key={curso.id} className={`relative flex flex-col md:flex-row items-center gap-8 group ${curso.status === 'locked' ? 'opacity-50 grayscale' : ''}`}>
-
-                            {/* Connector Dot (Desktop) */}
-                            <div className={`hidden md:flex absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 w-8 h-8 rounded-full border-4 items-center justify-center z-10 transition-colors ${curso.status === 'completed' ? 'bg-green-500 border-green-900' :
-                                curso.status === 'in_progress' ? 'bg-blue-500 border-blue-900' : 'bg-[#0a0a0a] border-gray-700'
-                                }`}>
-                                {curso.status === 'completed' && <span className="text-black text-xs">✓</span>}
-                            </div>
-
-                            {/* Image Side */}
-                            <div className={`flex-1 w-full md:w-auto ${index % 2 === 0 ? 'md:text-right md:order-1' : 'md:order-3'}`}>
-                                <div className="aspect-video rounded-xl overflow-hidden shadow-2xl border border-white/5 group-hover:scale-105 transition-transform duration-300 relative">
-                                    <img src={curso.image} alt={curso.title} className="w-full h-full object-cover" />
-                                    {curso.status === 'locked' && (
-                                        <div className="absolute inset-0 bg-black/60 flex items-center justify-center">
-                                            <span className="text-3xl">🔒</span>
-                                        </div>
-                                    )}
-                                </div>
-                            </div>
-
-                            {/* Spacer for Connector */}
-                            <div className="hidden md:block md:order-2 w-16" />
-
-                            {/* Content Side */}
-                            <div className={`flex-1 w-full md:w-auto ${index % 2 === 0 ? 'md:text-left md:order-3' : 'md:text-right md:order-1'}`}>
-                                <div className="mb-2">
-                                    {getStatusBadge(curso.status)}
-                                </div>
-                                <h3 className="text-2xl font-bold mb-2 group-hover:text-blue-400 transition-colors">
-                                    <Link href={curso.status !== 'locked' ? `/cursos` : '#'}>
-                                        {curso.title}
-                                    </Link>
-                                </h3>
-                                <p className="text-gray-400 text-sm mb-4">{curso.classes_count} Clases • 2 Exámenes</p>
-
-                                {curso.status !== 'locked' && (
-                                    <Link
-                                        href="/cursos"
-                                        className="inline-flex items-center gap-2 text-blue-400 font-bold hover:text-blue-300"
-                                    >
-                                        {curso.status === 'completed' ? 'Repasar Curso' : 'Continuar Curso'} →
-                                    </Link>
-                                )}
-                            </div>
-
-                        </div>
-                    ))}
-                </div>
+            <main className="flex-1 pt-24 pb-12">
+                {loading ? (
+                    <div className="text-center pt-20">Cargando Mapa...</div>
+                ) : (
+                    path && <LearningPathMap pathTitle={path.title} nodes={nodes} currentStepIndex={1} />
+                )}
             </main>
-
             <Footer />
         </div>
     );
