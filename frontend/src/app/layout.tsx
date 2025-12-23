@@ -1,4 +1,3 @@
-```typescript
 import type { Metadata } from "next";
 import { Inter } from "next/font/google";
 import { AuthProvider } from "@/contexts/AuthContext";
@@ -25,9 +24,9 @@ export default function RootLayout({
         <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1" />
         <link rel="icon" href="/favicon.ico" sizes="any" />
       </head>
-      <body className={`${ inter.variable } antialiased bg - slate - 900`}>
+      <body className={`${inter.className} antialiased bg-slate-900`}>
         <AuthProvider>
-            {children}
+          {children}
         </AuthProvider>
       </body>
     </html>

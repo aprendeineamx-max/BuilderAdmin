@@ -125,9 +125,18 @@ export default function Navbar() {
                             ))}
                             {isLive && (
                                 <Link
+                                    href="/live"
+                                    onClick={() => setIsMenuOpen(false)}
+                                    className="flex items-center gap-2 px-4 py-3 rounded-lg bg-red-500/10 text-red-500 border border-red-500/20 font-bold hover:bg-red-500/20"
+                                >
+                                    <span>🔴</span>
+                                    <span>EN VIVO</span>
+                                </Link>
+                            )}
+                        </div>
                     </div>
                 )}
-                    </div>
+            </div>
         </nav>
     );
 }
