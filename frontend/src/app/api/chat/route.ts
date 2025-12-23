@@ -20,14 +20,17 @@ Reglas:
 
 export async function POST(request: NextRequest) {
     try {
-        const { message, lesson_context, history } = await request.json();
+        const { message, lesson_context, history, image_url } = await request.json();
 
-        if (!message) {
-            return NextResponse.json({ error: "Missing message" }, { status: 400 });
+        if (!message && !image_url) {
+            return NextResponse.json({ error: "Message or Image required" }, { status: 400 });
         }
 
+        // Determine Model
+        const model = image_url ? "llama-3.2-90b-vision-preview" : GROQ_MODEL;
+
         // Build messages
-        const messages = [
+        const messages: any[] = [
             { role: "system", content: TUTOR_SYSTEM_PROMPT }
         ];
 
@@ -39,10 +42,26 @@ export async function POST(request: NextRequest) {
         }
 
         if (history && Array.isArray(history)) {
-            messages.push(...history.slice(-6));
+            // Filter history to simple text for now to avoid vision complexity in history
+            const textHistory = history.map((msg: any) => ({
+                role: msg.role,
+                content: typeof msg.content === 'string' ? msg.content : JSON.stringify(msg.content)
+            }));
+            messages.push(...textHistory.slice(-6));
         }
 
-        messages.push({ role: "user", content: message });
+        // Current User Message
+        if (image_url) {
+            messages.push({
+                role: "user",
+                content: [
+                    { type: "text", text: message || "Analiza esta imagen." },
+                    { type: "image_url", image_url: { url: image_url } }
+                ]
+            });
+        } else {
+            messages.push({ role: "user", content: message });
+        }
 
         // Call Groq API
         const startTime = Date.now();
@@ -53,10 +72,10 @@ export async function POST(request: NextRequest) {
                 "Authorization": `Bearer ${GROQ_API_KEY}`
             },
             body: JSON.stringify({
-                model: GROQ_MODEL,
+                model: model,
                 messages,
                 temperature: 0.7,
-                max_tokens: 500
+                max_tokens: 1024
             })
         });
 
@@ -64,6 +83,7 @@ export async function POST(request: NextRequest) {
         const latency = Date.now() - startTime;
 
         if (data.error) {
+            console.error("Groq API Error:", data.error);
             return NextResponse.json({ error: data.error.message }, { status: 500 });
         }
 
@@ -72,7 +92,7 @@ export async function POST(request: NextRequest) {
             response: data.choices[0].message.content,
             tokens_used: data.usage?.total_tokens || 0,
             latency_ms: latency,
-            model: GROQ_MODEL
+            model: model
         });
 
     } catch (error) {

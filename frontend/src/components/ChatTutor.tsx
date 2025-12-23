@@ -2,7 +2,8 @@
 
 import { useState, useRef, useEffect } from "react";
 import ReactMarkdown from "react-markdown";
-import { Mic, Image as ImageIcon, X, Send, Loader2 } from "lucide-react";
+import { Mic, Image as ImageIcon, X, Send, Loader2, Phone } from "lucide-react";
+import VoiceCallOverlay from "./VoiceCallOverlay";
 
 interface Message {
     role: "user" | "assistant";
@@ -27,6 +28,7 @@ export default function ChatTutor({ context, title, className = "" }: ChatTutorP
     const [isLoading, setIsLoading] = useState(false);
     const [listening, setListening] = useState(false);
     const [selectedImage, setSelectedImage] = useState<string | null>(null);
+    const [isCallOpen, setIsCallOpen] = useState(false);
     const messagesEndRef = useRef<HTMLDivElement>(null);
     const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -200,8 +202,8 @@ export default function ChatTutor({ context, title, className = "" }: ChatTutorP
                     <button
                         onClick={handleVoice}
                         className={`p-3 rounded-xl transition-all border border-white/5 ${listening
-                                ? "bg-red-500/20 text-red-400 border-red-500/50 animate-pulse"
-                                : "bg-slate-800 hover:bg-slate-700 text-slate-400 hover:text-white"
+                            ? "bg-red-500/20 text-red-400 border-red-500/50 animate-pulse"
+                            : "bg-slate-800 hover:bg-slate-700 text-slate-400 hover:text-white"
                             }`}
                         title="Dictar por voz"
                     >
