@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react";
 import Link from "next/link";
+import { supabase } from "@/lib/supabase";
 
 interface Clase {
     id: number;
@@ -20,15 +21,15 @@ export default function CursosPage() {
     useEffect(() => {
         const fetchClases = async () => {
             try {
-                const supaKey = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyAgCiAgICAicm9sZSI6ICJzZXJ2aWNlX3JvbGUiLAogICAgImlzcyI6ICJzdXBhYmFzZS1kZW1vIiwKICAgICJpYXQiOiAxNjQxNzY5MjAwLAogICAgImV4cCI6IDE3OTk1MzU2MDAKfQ.DaYlNEoUrrEn2Ig7tqibS-PHK5vgusbcbo7X36XVt4Q";
-                const res = await fetch("http://64.177.81.23:8000/rest/v1/clases_generadas?order=id.desc", {
-                    headers: {
-                        apikey: supaKey,
-                        Authorization: `Bearer ${supaKey}`
-                    }
-                });
-                const data = await res.json();
+                const { data, error } = await supabase
+                    .from('clases_generadas')
+                    .select('*')
+                    .order('id', { ascending: false });
+
+                if (error) throw error;
+
                 setClases(data || []);
+                setFilter("all"); // Force filter reset on load
             } catch (error) {
                 console.error("Error fetching classes:", error);
             } finally {
@@ -39,10 +40,10 @@ export default function CursosPage() {
     }, []);
 
     const categorizeClass = (tema: string) => {
-        const t = tema.toLowerCase();
+        const t = tema ? tema.toLowerCase() : "";
         if (t.includes("suma") || t.includes("resta") || t.includes("multiplic") || t.includes("division") || t.includes("fraccion") || t.includes("porcentaje") || t.includes("geometria")) return "matematicas";
-        if (t.includes("lectura") || t.includes("escritura") || t.includes("ortografia") || t.includes("comprension")) return "lectura";
-        if (t.includes("cuerpo") || t.includes("salud") || t.includes("alimentacion") || t.includes("ambiente")) return "ciencias";
+        if (t.includes("lectura") || t.includes("escritura") || t.includes("ortografia") || t.includes("comprension") || t.includes("vocal")) return "lectura";
+        if (t.includes("cuerpo") || t.includes("salud") || t.includes("alimentacion") || t.includes("ambiente") || t.includes("natural")) return "ciencias";
         if (t.includes("historia") || t.includes("derecho") || t.includes("ciudadan") || t.includes("civismo")) return "sociedad";
         return "general";
     };
@@ -67,7 +68,7 @@ export default function CursosPage() {
         }
     };
 
-    const filteredClases = filter === "all"
+    const filteredClases = (filter === "all" || !filter)
         ? clases
         : clases.filter(c => categorizeClass(c.tema) === filter);
 
@@ -109,8 +110,8 @@ export default function CursosPage() {
                             key={f}
                             onClick={() => setFilter(f)}
                             className={`px-4 py-2 rounded-lg font-medium transition-colors ${filter === f
-                                    ? "bg-blue-500 text-white"
-                                    : "bg-white/5 text-gray-300 hover:bg-white/10"
+                                ? "bg-blue-500 text-white"
+                                : "bg-white/5 text-gray-300 hover:bg-white/10"
                                 }`}
                         >
                             {f === "all" ? "📚 Todas" :

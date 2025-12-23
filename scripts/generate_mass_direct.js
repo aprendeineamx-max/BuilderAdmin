@@ -3,28 +3,28 @@ const http = require('http');
 
 // Configuration
 const SAMBANOVA_API_KEY = "9f65a91b-2277-4255-81ae-2b62ba0299bd";
-const SUPABASE_HOST = "64.177.81.23";
+const SUPABASE_HOST = "localhost";
 const SUPABASE_PORT = 8000;
 const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyAgCiAgICAicm9sZSI6ICJzZXJ2aWNlX3JvbGUiLAogICAgImlzcyI6ICJzdXBhYmFzZS1kZW1vIiwKICAgICJpYXQiOiAxNjQxNzY5MjAwLAogICAgImV4cCI6IDE3OTk1MzU2MDAKfQ.DaYlNEoUrrEn2Ig7tqibS-PHK5vgusbcbo7X36XVt4Q";
 
 const TOPICS = {
-    "Lectura y Escritura": [
+    "Matemáticas": [
+        "Suma y Resta Básica", "Multiplicación para la vida", "Fracciones en el mercado",
+        "Cálculo de Áreas simples", "Porcentajes y Descuentos", "Uso del Dinero",
+        "Geometría básica", "Lectura de Gráficas", "Unidades de Medida"
+    ],
+    "Lectura": [
         "Las vocales y sus sonidos", "El abecedario completo", "Sílabas simples", "Formando palabras cortas",
         "Uso de mayúsculas", "Signos de puntuación", "Comprensión lectora básica", "Escribiendo datos personales",
-        "Tipos de textos: receta", "Sinónimos y antónimos", "Verbos: tiempos simples", "Adjetivos y descripciones",
-        "La oración simple", "Reglas de acentuación", "Escribiendo una carta"
+        "Tipos de textos: receta", "Sinónimos y antónimos", "Redacción de cartas formales"
     ],
-    "Ciencias Naturales": [
-        "Los cinco sentidos", "El sistema digestivo", "El sistema respiratorio", "El sistema solar",
-        "Ciclo del agua", "Las plantas y sus partes", "Animales vertebrados e invertebrados",
-        "Salud e higiene personal", "Ecosistemas de México", "Cuidado del medio ambiente (3R)",
-        "La energía eléctrica", "Fenómenos naturales"
+    "Ciencias": [
+        "Los cinco sentidos", "El sistema digestivo", "Cuidado del Agua", "Las Plantas Medicinales",
+        "Nutrición y Salud", "Prevención de Enfermedades", "El Clima de México"
     ],
-    "Ciencias Sociales": [
-        "Historia de la Independencia", "La Revolución Mexicana", "La Constitución y derechos",
-        "Geografía de México", "Diversidad cultural", "Tradiciones: Día de Muertos",
-        "Familia y comunidad", "Derechos de los niños", "La democracia",
-        "Símbolos patrios", "Culturas prehispánicas", "Economía familiar"
+    "Sociedad": [
+        "Historia de la Independencia", "La Revolución Mexicana", "Derechos y Obligaciones",
+        "Geografía de México", "Tradiciones Mexicanas", "Economía Familiar"
     ]
 };
 
@@ -39,10 +39,10 @@ function request(options, body, useHttps = true) {
                     try {
                         resolve(JSON.parse(data));
                     } catch (e) {
-                        resolve(data); // In case it's not JSON
+                        resolve(data);
                     }
                 } else {
-                    reject(new Error(`Status ${res.statusCode}: ${data}`));
+                    resolve({ error: `Status ${res.statusCode}: ${data}` }); // Resolve error
                 }
             });
         });
@@ -57,11 +57,11 @@ function request(options, body, useHttps = true) {
 }
 
 async function generateClass(topic, category) {
-    console.log(`[Generating] ${category}: ${topic}...`);
+    console.log(`[Generando] ${category}: ${topic}...`);
     const startTime = Date.now();
 
     try {
-        // 1. Generate Content with SambaNova (HTTPS)
+        // 1. Generate via SambaNova (Llama 3.3)
         const aiData = await request({
             hostname: 'api.sambanova.ai',
             path: '/v1/chat/completions',
@@ -75,22 +75,26 @@ async function generateClass(topic, category) {
             messages: [
                 {
                     role: "system",
-                    content: `Eres un educador experto del programa INEA México. Crea lecciones claras y prácticas para adultos.
-                    Genera en Markdown: Título, Objetivos, Contenido explicativo detallado, Ejemplos de la vida diaria mexicana, y un Quiz de 3 preguntas.`
+                    content: `Eres un educador profesional del INEA. Genera una clase completa en formato Markdown puro.
+                    Incluye: # Título, ## Introducción, ## Desarrollo (con ejemplos mexicanos), ## Ejercicios.
+                    No uses JSON, solo Markdown.`
                 },
                 {
                     role: "user",
-                    content: `Crea una clase educativa completa sobre: ${topic}`
+                    content: `Crea una clase educativa completa sobre: ${topic} (${category})`
                 }
             ],
             max_tokens: 1500,
             temperature: 0.7
         }, true);
 
+        if (aiData.error) throw new Error(aiData.error);
+        if (!aiData.choices || aiData.choices.length === 0) throw new Error("No Content from AI");
+
         const content = aiData.choices[0].message.content;
         const tokens = aiData.usage.total_tokens;
 
-        // 2. Insert into Supabase (HTTP)
+        // 2. Insert into Supabase
         const insertData = await request({
             hostname: SUPABASE_HOST,
             port: SUPABASE_PORT,
@@ -107,39 +111,38 @@ async function generateClass(topic, category) {
             contenido: content,
             modelo: "Meta-Llama-3.3-70B-Instruct",
             tokens_usados: tokens
-        }, false); // False for HTTP
+        }, false);
+
+        if (insertData.error) throw new Error(JSON.stringify(insertData));
 
         const id = Array.isArray(insertData) ? insertData[0].id : insertData?.id;
-        console.log(`   ✅ Success! ID: ${id} | Tokens: ${tokens} | ${Date.now() - startTime}ms`);
+        console.log(`   ✅ Guardado! ID: ${id} | Tokens: ${tokens} | ${Date.now() - startTime}ms`);
         return true;
 
     } catch (error) {
-        console.error(`   ❌ Failed: ${error.message}`);
+        console.error(`   ❌ Error: ${error.message}`);
         return false;
     }
 }
 
 async function runBatch() {
-    console.log("🚀 Starting Mass Content Generation (Mixed Protocol)");
+    console.log("🚀 Iniciando Generación Masiva (SambaNova Llama 3.3)");
     console.log("==================================================");
 
     let totalSuccess = 0;
-    let totalFailed = 0;
 
     for (const [category, topics] of Object.entries(TOPICS)) {
-        console.log(`\n📂 Category: ${category}`);
+        console.log(`\n📂 Categoría: ${category}`);
         for (const topic of topics) {
             const success = await generateClass(topic, category);
             if (success) totalSuccess++;
-            else totalFailed++;
-
-            // Rate limiting - wait 1 second
-            await new Promise(resolve => setTimeout(resolve, 1000));
+            // Rate limiting
+            await new Promise(resolve => setTimeout(resolve, 2000));
         }
     }
 
     console.log("\n===================================================");
-    console.log(`🎉 Finished! Total: ${totalSuccess + totalFailed} | Success: ${totalSuccess} | Failed: ${totalFailed}`);
+    console.log(`🎉 Terminado! Total Generado: ${totalSuccess}`);
 }
 
 runBatch();
